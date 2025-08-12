@@ -120,6 +120,18 @@ export default function Navbar() {
               <ul className="mt-2 ml-4 space-y-1 bg-[#001225] rounded p-2">
                 <li>
                   <Link
+                    href={"/orders"}
+                    className="hover:bg-[#041b3d] block p-2 rounded text-sm transition-colors"
+                    onClick={() => {
+                      setOpen(false);
+                      setOrdersOpen(false);
+                    }}
+                  >
+                    All Orders
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href="/orders/current"
                     className="hover:bg-[#041b3d] block p-2 rounded text-sm transition-colors"
                     onClick={() => {
@@ -139,8 +151,13 @@ export default function Navbar() {
             </Link>
           </li>
           <li role="menuitem">
-            <Link href={"/stratagems"} className="hover:bg-[#041b3d]">
-              Stratagems
+            <Link href={"/objectives"} className="hover:bg-[#041b3d]">
+              Objectives
+            </Link>
+          </li>
+          <li role="menuitem">
+            <Link href={"/values"} className="hover:bg-[#041b3d]">
+              Values
             </Link>
           </li>
         </ul>
@@ -192,8 +209,11 @@ export default function Navbar() {
           >
             Supply Lines
           </Link>
-          <Link href={"/stratagems"} className="hover:bg-[#4a4a4b] p-1 rounded">
-            Stratagems
+          <Link href={"/objectives"} className="hover:bg-[#4a4a4b] p-1 rounded">
+            Objectives
+          </Link>
+          <Link href={"/values"} className="hover:bg-[#4a4a4b] p-1 rounded">
+            Values
           </Link>
         </div>
         {!user || error ? (

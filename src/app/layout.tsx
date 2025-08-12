@@ -23,7 +23,7 @@ export default function RootLayout({
         <header>
           <Navbar></Navbar>
         </header>
-        <main>{children}</main>
+        <main className="flex-1 flex flex-col">{children}</main>
       </body>
     </html>
   );

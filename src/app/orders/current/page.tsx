@@ -9,13 +9,14 @@ import {
 import { parseValueType } from "@/utils/parsing/values";
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
+import NoData from "../../../../components/noData";
 
 export default async function CurrentOrder() {
   const majorOrder = await getLatestMajorOrder();
 
   if (!majorOrder) {
     //TODO: Implement as component
-    return <div>No major order</div>;
+    return <NoData text="No Major Order"></NoData>;
   }
 
   const opportunities = await getStrategicOpportunities();
