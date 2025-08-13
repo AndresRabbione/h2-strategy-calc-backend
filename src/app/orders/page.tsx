@@ -2,15 +2,9 @@ import { createClient } from "@/utils/supabase/server";
 import Sorting from "../../../components/sorting";
 import Pagination from "../../../components/pagination";
 import Link from "next/link";
+import { PageProps } from "../../../.next/types/app/orders/page";
 
-interface MOPage {
-  searchParams?: {
-    order?: string;
-    page?: string;
-  };
-}
-
-export default async function MajorOrders({ searchParams }: MOPage) {
+export default async function MajorOrders({ searchParams }: PageProps) {
   const supabase = await createClient();
   const limit = 10;
   const awaitedSearchParams = await searchParams;
