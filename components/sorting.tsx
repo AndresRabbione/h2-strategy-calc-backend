@@ -19,7 +19,7 @@ export default function Sorting() {
   };
 
   return (
-    <div className="bg-[#001d3d] p-6 rounded-xl">
+    <div className="bg-gray-700 p-6 rounded-xl">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <label
           htmlFor="movie-filter"

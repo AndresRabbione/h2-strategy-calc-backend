@@ -23,9 +23,9 @@ export default async function MajorOrders({ searchParams }: PageProps) {
   if (!assignments) {
     return (
       <div>
-        <section className="px-6 py-10 bg-[#003566] min-h-screen">
+        <section className="px-6 py-10 min-h-screen">
           <h1 className="text-center pb-4 text-3xl font-bold">Major Orders</h1>
-          <div className="bg-[#001d3d]">
+          <div className="bg-gray-700">
             <div>
               <Sorting />
             </div>
@@ -44,9 +44,9 @@ export default async function MajorOrders({ searchParams }: PageProps) {
   if (assignments.length === 0) {
     return (
       <div className="min-h-screen flex flex-col">
-        <section className="px-6 py-10 bg-[#003566] flex-1 flex flex-col">
+        <section className="px-6 py-10 flex-1 flex flex-col">
           <h1 className="text-center pb-4 text-3xl font-bold">Major Orders</h1>
-          <div className="bg-[#001d3d] flex flex-col flex-1">
+          <div className="bg-gray-700 flex flex-col flex-1">
             <div>
               <Sorting />
             </div>
@@ -66,9 +66,9 @@ export default async function MajorOrders({ searchParams }: PageProps) {
 
   return (
     <div className="h-full min-h-screen flex flex-col">
-      <section className="px-6 py-10 bg-[#003566] flex-1 flex flex-col h-full">
+      <section className="px-6 py-10 flex-1 flex flex-col h-full">
         <h1 className="text-center pb-4 text-3xl font-bold">Major Orders</h1>
-        <div className="bg-[#001d3d] h-full flex flex-col flex-1">
+        <div className="bg-gray-700 h-full flex flex-col flex-1 rounded shadow">
           <div>
             <Sorting />
           </div>
@@ -87,7 +87,7 @@ export default async function MajorOrders({ searchParams }: PageProps) {
               </Link>
             ))}
           </div>
-          <div>
+          <div className="bg-gray-700">
             <Pagination
               currentPage={page}
               hasNext={

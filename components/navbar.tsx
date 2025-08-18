@@ -99,7 +99,9 @@ export default function Navbar() {
       >
         <ul role="menu" className="flex flex-col px-5 gap-4 py-3">
           <li role="menuitem">
-            <Link href="/">Home</Link>
+            <Link href="/" className="hover:bg-[#041b3d]">
+              Home
+            </Link>
           </li>
           <li role="menuitem" className="relative">
             <button

@@ -13,6 +13,10 @@ export async function getLatestMajorOrder(): Promise<Assignment | null> {
       },
     });
 
+    if (request.status !== 200) {
+      return null;
+    }
+
     const responseJson = await request.json();
 
     if (responseJson.length === 0) {
