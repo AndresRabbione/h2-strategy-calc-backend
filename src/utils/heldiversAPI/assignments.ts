@@ -1,6 +1,7 @@
 import { Assignment } from "@/lib/typeDefinitions";
 
-const api = process.env.HELLDIVERS_API_URL + "/raw/api/v2/Assignment/War/801";
+const api =
+  process.env.NEXT_PUBLIC_HELLDIVERS_API_URL + "/raw/api/v2/Assignment/War/801";
 
 export async function getLatestMajorOrder(): Promise<Assignment | null> {
   try {

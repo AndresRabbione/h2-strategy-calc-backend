@@ -21,7 +21,6 @@ export default function RawObjValuePair({
   const [isTypeOpen, setTypeOpen] = useState(false);
   const [isValueOpen, setValueOpen] = useState(false);
   const tableName = getTableNameFromType(currentValueType, auxValue);
-  console.log(tableName);
   return (
     <div className="flex flex-col gap-3 xl:gap-2">
       <div className="flex flex-row gap-2 items-center">

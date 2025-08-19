@@ -19,19 +19,23 @@ export default function MOValSidebar({
   const [nameChanged, setChanged] = useState(false);
   const [selectItemType] = useState(tableName === "item");
   const [selectedTable, setTable] = useState(tableName);
+  const [isMounted, setMounted] = useState(false);
+
+  function handleClose() {
+    setMounted(true);
+    onClose();
+  }
 
   async function handleEdit() {
-    if (nameChanged) {
-      const supabase = createClient();
+    const supabase = createClient();
 
-      const { error, data } = await supabase
-        .from(selectedTable)
-        .update({ name: nameValue })
-        .eq("id", id)
-        .select();
-      valObj = data as typeof valObj;
-      setChanged(false);
-    }
+    const { error, data } = await supabase
+      .from(selectedTable)
+      .update({ name: nameValue })
+      .eq("id", id)
+      .select();
+    valObj = data as typeof valObj;
+    setChanged(false);
     //TODO: Add toast to confirm or fail
   }
 
@@ -48,7 +52,7 @@ export default function MOValSidebar({
 
   if (valObj.length === 0) {
     return (
-      <div className="fixed">
+      <div className={`fixed`}>
         <div className="fixed inset-0 bg-black opacity-60 z-1"></div>
         <div
           id="val-edit-sidebar"
@@ -56,7 +60,7 @@ export default function MOValSidebar({
         >
           <button
             className="fixed top-3 right-3 text-4xl mr-4 mt-0.5 justify-center dark:text-white text-black cursor-pointer rounded-full hover:bg-[#bdbcb968] h-10 w-10 transition-all delay-75 duration-100 ease-in-out"
-            onClick={onClose}
+            onClick={handleClose}
           >
             &times;
           </button>
@@ -108,7 +112,7 @@ export default function MOValSidebar({
             <div className="flex flex-col justify-center items-center">
               <button
                 disabled={!nameChanged}
-                className="bg-[#001d3dcf] hover:bg-[#001d3d] dark:bg-green-800 dark:hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full cursor-pointer w-full"
+                className={`bg-[#001d3dcf] hover:bg-[#001d3d] dark:bg-green-800 dark:hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full cursor-pointer w-full hover:motion-reduce:animate-bounce`}
                 onClick={handleInsert}
               >
                 Save
@@ -129,7 +133,7 @@ export default function MOValSidebar({
       >
         <button
           className="fixed top-3 right-3 text-4xl mr-4 mt-0.5 justify-center dark:text-white text-black cursor-pointer rounded-full hover:bg-[#bdbcb968] h-10 w-10 transition-all delay-75 duration-100 ease-in-out"
-          onClick={onClose}
+          onClick={handleClose}
         >
           &times;
         </button>
