@@ -56,7 +56,7 @@ export default function MOValSidebar({
         <div className="fixed inset-0 bg-black opacity-60 z-1"></div>
         <div
           id="val-edit-sidebar"
-          className="h-full fixed top-0 right-0 z-2 overflow-x-hidden bg-white dark:bg-gray-700 dark:text-white pt-15 w-1/5 text-black"
+          className="h-full fixed top-0 right-0 z-2 overflow-x-hidden bg-white dark:bg-gray-700 dark:text-white pt-15 w-2/3 md:w-1/3 xl:w-1/5 text-black"
         >
           <button
             className="fixed top-3 right-3 text-4xl mr-4 mt-0.5 justify-center dark:text-white text-black cursor-pointer rounded-full hover:bg-[#bdbcb968] h-10 w-10 transition-all delay-75 duration-100 ease-in-out"
@@ -111,7 +111,7 @@ export default function MOValSidebar({
             </div>
             <div className="flex flex-col justify-center items-center">
               <button
-                disabled={!nameChanged}
+                disabled={!nameChanged && nameValue.length > 0}
                 className={`bg-[#001d3dcf] hover:bg-[#001d3d] dark:bg-green-800 dark:hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full cursor-pointer w-full hover:motion-reduce:animate-bounce`}
                 onClick={handleInsert}
               >
@@ -129,7 +129,7 @@ export default function MOValSidebar({
       <div className="fixed inset-0 bg-black opacity-60 z-1"></div>
       <div
         id="val-edit-sidebar"
-        className="h-full fixed top-0 right-0 z-2 overflow-x-hidden bg-white dark:bg-gray-700 dark:text-white pt-15 w-1/5 text-black"
+        className="h-full fixed top-0 right-0 z-2 overflow-x-hidden bg-white dark:bg-gray-700 dark:text-white pt-15 w-2/3 md:w-1/3 xl:w-1/5 text-black"
       >
         <button
           className="fixed top-3 right-3 text-4xl mr-4 mt-0.5 justify-center dark:text-white text-black cursor-pointer rounded-full hover:bg-[#bdbcb968] h-10 w-10 transition-all delay-75 duration-100 ease-in-out"
@@ -185,7 +185,7 @@ export default function MOValSidebar({
           </div>
           <div className="flex flex-col justify-center items-center">
             <button
-              disabled={!nameChanged}
+              disabled={!nameChanged && nameValue.length > 0}
               className={`${
                 nameChanged
                   ? "bg-[#001d3dcf] dark:bg-green-800 hover:bg-[#001d3d] dark:hover:bg-green-700 cursor-pointer font-bold"
