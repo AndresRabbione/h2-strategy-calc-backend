@@ -16,7 +16,6 @@ export default async function CurrentOrder() {
   const majorOrder = await getLatestMajorOrder();
 
   if (!majorOrder) {
-    //TODO: Implement as component
     return <NoData text="No Major Order"></NoData>;
   }
 

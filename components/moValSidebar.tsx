@@ -1,8 +1,9 @@
 "use client";
 
 import { createClient } from "@/utils/supabase/client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TableNames } from "@/lib/typeDefinitions";
+import "@/styles/sidebar.css";
 
 export default function MOValSidebar({
   id,
@@ -21,9 +22,17 @@ export default function MOValSidebar({
   const [selectedTable, setTable] = useState(tableName);
   const [isMounted, setMounted] = useState(false);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 10);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   function handleClose() {
-    setMounted(true);
-    onClose();
+    setMounted(false);
+    setTimeout(() => {
+      onClose();
+    }, 300);
   }
 
   async function handleEdit() {
@@ -52,11 +61,21 @@ export default function MOValSidebar({
 
   if (valObj.length === 0) {
     return (
-      <div className={`fixed`}>
-        <div className="fixed inset-0 bg-black opacity-60 z-1"></div>
+      <div>
+        <div
+          className={`fixed inset-0 bg-black opacity-60 z-1 ${
+            isMounted
+              ? "overlay-fade-enter overlay-fade-enter-active"
+              : "overlay-fade-enter overlay-fade-exit-active"
+          }`}
+        ></div>
         <div
           id="val-edit-sidebar"
-          className="h-full fixed top-0 right-0 z-2 overflow-x-hidden bg-white dark:bg-gray-700 dark:text-white pt-15 w-2/3 md:w-1/3 xl:w-1/5 text-black"
+          className={`h-full fixed top-0 right-0 z-2 overflow-x-hidden bg-white dark:bg-gray-700 dark:text-white pt-15 w-2/3 md:w-1/3 xl:w-1/5 text-black ${
+            isMounted
+              ? "sidebar-enter sidebar-enter-active"
+              : "sidebar-enter sidebar-exit-active"
+          }`}
         >
           <button
             className="fixed top-3 right-3 text-4xl mr-4 mt-0.5 justify-center dark:text-white text-black cursor-pointer rounded-full hover:bg-[#bdbcb968] h-10 w-10 transition-all delay-75 duration-100 ease-in-out"
@@ -125,11 +144,21 @@ export default function MOValSidebar({
   }
 
   return (
-    <div className="fixed">
-      <div className="fixed inset-0 bg-black opacity-60 z-1"></div>
+    <div>
+      <div
+        className={`fixed inset-0 bg-black opacity-60 z-1 ${
+          isMounted
+            ? "overlay-fade-enter overlay-fade-enter-active"
+            : "overlay-fade-enter overlay-fade-exit-active"
+        }`}
+      ></div>
       <div
         id="val-edit-sidebar"
-        className="h-full fixed top-0 right-0 z-2 overflow-x-hidden bg-white dark:bg-gray-700 dark:text-white pt-15 w-2/3 md:w-1/3 xl:w-1/5 text-black"
+        className={`h-full fixed top-0 right-0 z-2 overflow-x-hidden bg-white dark:bg-gray-700 dark:text-white pt-15 w-2/3 md:w-1/3 xl:w-1/5 text-black ${
+          isMounted
+            ? "sidebar-enter sidebar-enter-active"
+            : "sidebar-exit sidebar-exit-active"
+        }`}
       >
         <button
           className="fixed top-3 right-3 text-4xl mr-4 mt-0.5 justify-center dark:text-white text-black cursor-pointer rounded-full hover:bg-[#bdbcb968] h-10 w-10 transition-all delay-75 duration-100 ease-in-out"
