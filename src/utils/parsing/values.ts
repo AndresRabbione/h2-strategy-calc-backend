@@ -1,5 +1,5 @@
 import { TableNames, ValueTypes } from "@/lib/typeDefinitions";
-import { createClient } from "../supabase/server";
+import { createClient } from "../supabase/client";
 
 export async function parseValueType(
   valueType: number,
@@ -12,7 +12,7 @@ export async function parseValueType(
   ) {
     return [{ id: 1, name: "None" }];
   }
-  const supabase = await createClient();
+  const supabase = createClient();
 
   switch (valueType) {
     case ValueTypes.DIFFICULTY:
@@ -61,7 +61,7 @@ export async function parseValueType(
       return faction ?? [];
       break;
     case ValueTypes.AMOUNT:
-      return [{ id: 1, name: String(value) }];
+      return [{ id: 1, name: value.toLocaleString("en-US") }];
       break;
     case ValueTypes.ITEM_TYPE:
       const { data: itemType } = await supabase

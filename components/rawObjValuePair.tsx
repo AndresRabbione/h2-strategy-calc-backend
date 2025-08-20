@@ -1,9 +1,10 @@
 "use client";
 
 import { ValueTypes } from "@/lib/typeDefinitions";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MOValSidebar from "./moValSidebar";
-import { getTableNameFromType } from "@/utils/parsing/values";
+import { getTableNameFromType, parseValueType } from "@/utils/parsing/values";
+import { createClient } from "@/utils/supabase/client";
 
 export default function RawObjValuePair({
   valueType,
@@ -20,7 +21,39 @@ export default function RawObjValuePair({
 }) {
   const [isTypeOpen, setTypeOpen] = useState(false);
   const [isValueOpen, setValueOpen] = useState(false);
+  const [typeState, setType] = useState(valueType);
+  const [valueState, setValue] = useState(parsedValue);
+  const [typeSubmitted, setTypeSubmit] = useState(false);
+  const [valueSubmitted, setValueSubmit] = useState(false);
   const tableName = getTableNameFromType(currentValueType, auxValue);
+
+  useEffect(() => {
+    async function fetchType() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("objectiveValueType")
+        .select("*")
+        .eq("id", currentValueType);
+      if (data) setType(data);
+    }
+
+    async function fetchValue() {
+      const newValue = await parseValueType(currentValueType, value, auxValue);
+      if (newValue) {
+        setValue(newValue);
+      }
+    }
+
+    if (typeSubmitted) {
+      fetchType();
+      setTypeSubmit(false);
+    }
+
+    if (valueSubmitted) {
+      fetchValue();
+      setValueSubmit(false);
+    }
+  }, [typeSubmitted, valueSubmitted]);
   return (
     <div className="flex flex-col gap-3 xl:gap-2">
       <div className="flex flex-row gap-2 items-center">
@@ -28,21 +61,22 @@ export default function RawObjValuePair({
         <button
           onClick={() => setTypeOpen((prev) => !prev)}
           className={`font-light cursor-pointer transition-transform hover:scale-110 ${
-            !valueType || valueType.length === 0 ? "text-yellow-400" : ""
+            !typeState || typeState.length === 0 ? "text-yellow-400" : ""
           }`}
         >
           <i>
-            {valueType && valueType.length > 0
-              ? valueType[0].name
+            {typeState && typeState.length > 0
+              ? typeState[0].name
               : `${currentValueType} ! Unkwown`}
           </i>
         </button>
         {isTypeOpen ? (
           <MOValSidebar
             id={currentValueType}
-            valObj={valueType ?? []}
+            valObj={typeState ?? []}
             tableName="objectiveValueType"
             onClose={() => setTypeOpen(false)}
+            onSave={() => setTypeSubmit(true)}
           ></MOValSidebar>
         ) : null}
       </div>
@@ -57,7 +91,7 @@ export default function RawObjValuePair({
                 currentValueType === ValueTypes.ITEM))
           }
           className={`font-light ${
-            parsedValue.length === 0 ? "text-yellow-400" : ""
+            valueState.length === 0 ? "text-yellow-400" : ""
           } ${
             currentValueType === ValueTypes.AMOUNT ||
             (auxValue === 0 &&
@@ -68,17 +102,16 @@ export default function RawObjValuePair({
           }`}
         >
           <i>
-            {parsedValue.length > 0
-              ? parsedValue[0].name
-              : `${value} ! Unkwown`}
+            {valueState.length > 0 ? valueState[0].name : `${value} ! Unkwown`}
           </i>
         </button>
         {isValueOpen ? (
           <MOValSidebar
             id={value}
-            valObj={parsedValue ?? []}
+            valObj={valueState ?? []}
             tableName={tableName}
             onClose={() => setValueOpen(false)}
+            onSave={() => setValueSubmit(true)}
           ></MOValSidebar>
         ) : null}
       </div>

@@ -9,7 +9,7 @@ import {
 import { parseValueType } from "@/utils/parsing/values";
 import { createClient } from "@/utils/supabase/server";
 import NoData from "../../../../components/noData";
-import RawObjHeader from "../../../../components/rawObjView";
+import RawObjHeader from "../../../../components/rawObjHead";
 import RawObjValuePair from "../../../../components/rawObjValuePair";
 
 export default async function CurrentOrder() {
