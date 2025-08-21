@@ -30,6 +30,7 @@ export default async function CurrentOrder() {
       >
         <h1 className="text-3xl mb-2">
           Major Order -{" "}
+          {/* FIXME: This doesn't produce the correct date, figure it out sometime */}
           {new Date(warStartTime + majorOrder.startTime * 1000).toUTCString()}
         </h1>
 

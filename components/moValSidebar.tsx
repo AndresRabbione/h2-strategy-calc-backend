@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { TableNames } from "@/lib/typeDefinitions";
 import "@/styles/sidebar.css";
 import { Flip, toast, ToastContainer } from "react-toastify";
+import { sidebarToastConfig } from "@/lib/constants";
 
 export default function MOValSidebar({
   id,
@@ -40,6 +41,12 @@ export default function MOValSidebar({
   }
 
   async function handleEdit() {
+    if (!tableName || tableName.length <= 0) {
+      toast.error(
+        "Couldn't save data as the type of value is unknown. Please fill out the type first",
+        sidebarToastConfig
+      );
+    }
     setPending(true);
     const supabase = createClient();
 
@@ -52,34 +59,23 @@ export default function MOValSidebar({
     setChanged(false);
     setPending(false);
     if (error) {
-      toast.error("Something went wrong", {
-        position: "bottom-left",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: false,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-        transition: Flip,
-      });
+      toast.error(
+        error.code ? `${error.code}: ${error.message}` : "Something went wrong",
+        sidebarToastConfig
+      );
     } else if (data) {
-      toast.success("Changes saved", {
-        position: "bottom-left",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: false,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-        transition: Flip,
-      });
+      toast.success("Changes saved", sidebarToastConfig);
     }
     onSave();
   }
 
   async function handleInsert() {
+    if (!tableName || tableName.length <= 0) {
+      toast.error(
+        "Couldn't save data as the type of value is unknown. Please fill out the type first",
+        sidebarToastConfig
+      );
+    }
     setPending(true);
     const supabase = createClient();
 
@@ -93,30 +89,10 @@ export default function MOValSidebar({
     if (error) {
       toast.error(
         error.code ? `${error.code}: ${error.message}` : "Something went wrong",
-        {
-          position: "bottom-left",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: false,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "dark",
-          transition: Flip,
-        }
+        sidebarToastConfig
       );
     } else if (data) {
-      toast.success("Changes saved", {
-        position: "bottom-left",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: false,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-        transition: Flip,
-      });
+      toast.success("Changes saved", sidebarToastConfig);
     }
   }
 
@@ -205,10 +181,36 @@ export default function MOValSidebar({
             <div className="flex flex-col justify-center items-center">
               <button
                 disabled={isPending || (!nameChanged && nameValue.length > 0)}
-                className={`bg-[#001d3dcf] hover:bg-[#001d3d] dark:bg-green-800 dark:hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full cursor-pointer w-full hover:motion-reduce:animate-bounce`}
+                className={`${
+                  nameChanged
+                    ? "bg-[#001d3dcf] dark:bg-green-800 hover:bg-[#001d3d] dark:hover:bg-green-700 cursor-pointer font-bold"
+                    : "bg-[#05470593]"
+                }  text-white  py-2 px-4 rounded-full w-full transition-all duration-100 ease-in-out`}
                 onClick={handleInsert}
               >
-                Save
+                {isPending ? (
+                  <svg
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="fixed mr-3 -ml-1 size-7 animate-spin text-white"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="white"
+                      d="M 4 12 a 8 8 0 0 1 8 -8 V 0 C 5.373 0 0 5.373 0 12 h 4 Z m 2 5.291 A 7.962 7.962 0 0 1 4 12 H 0 c 0 3.042 1.135 5.824 3 7.938 l 3 -2.647 Z"
+                    ></path>
+                  </svg>
+                ) : null}
+                {!isPending ? "Save" : "Saving"}
               </button>
             </div>
           </div>
