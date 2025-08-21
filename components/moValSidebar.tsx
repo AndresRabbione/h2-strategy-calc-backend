@@ -46,6 +46,7 @@ export default function MOValSidebar({
         "Couldn't save data as the type of value is unknown. Please fill out the type first",
         sidebarToastConfig
       );
+      return;
     }
     setPending(true);
     const supabase = createClient();
@@ -75,6 +76,7 @@ export default function MOValSidebar({
         "Couldn't save data as the type of value is unknown. Please fill out the type first",
         sidebarToastConfig
       );
+      return;
     }
     setPending(true);
     const supabase = createClient();
