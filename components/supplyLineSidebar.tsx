@@ -148,6 +148,7 @@ export default function SupplyLineSidebar({
       );
     } else if (data) {
       toast.success("Link created", sidebarToastConfig);
+      setLink(data[0].id);
     }
   }
 
@@ -304,7 +305,7 @@ export default function SupplyLineSidebar({
               <button
                 disabled={isPending || (!originState && !destinationState)}
                 className={`bg-[#001d3dcf] hover:bg-[#001d3d] dark:bg-green-800 dark:hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full cursor-pointer w-full hover:motion-reduce:animate-bounce`}
-                onClick={handleInsert}
+                onClick={linkState === -1 ? handleInsert : handleEdit}
               >
                 {isPending ? (
                   <svg
@@ -476,9 +477,7 @@ export default function SupplyLineSidebar({
               type="button"
               disabled={
                 isPending ||
-                !originChanged ||
-                !destinationChanged ||
-                !directionChanged
+                (!originChanged && !destinationChanged && !directionChanged)
               }
               className={`${
                 destinationChanged || originChanged || directionChanged
