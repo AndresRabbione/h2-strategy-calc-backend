@@ -20,7 +20,7 @@ export default function Pagination({
   };
 
   return (
-    <div className="flex items-center justify-between p-3 gap-3">
+    <div className="flex items-center justify-between p-3 pb-1.5 md:pb-3 gap-3">
       <div>
         {
           <Button

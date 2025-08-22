@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function SearchBar() {
+export default function SearchBar({ disabled }: { disabled: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -31,20 +31,16 @@ export default function SearchBar() {
   };
 
   return (
-    <div className="p-6 rounded-xl">
+    <div className="p-3 pt-1.5 md:pt-6 md:p-6 md:pr-3 rounded-xl">
       <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
       ></link>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <label
-          htmlFor="movie-filter"
-          className="text-white text-lg font-semibold"
-        >
-          Filter:
-        </label>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1 md:gap-3">
+        <label className="text-white text-lg font-semibold">Filter:</label>
         <div className="relative w-full sm:w-auto">
           <input
+            disabled={disabled}
             autoComplete="off"
             type="search"
             id="search"
