@@ -1,3 +1,5 @@
+import { Database } from "../../database.types";
+
 export type Reward = {
   type: number;
   id32: number;
@@ -38,3 +40,5 @@ export enum ValueTypes {
   ITEM = 5,
   ITEM_TYPE = 6,
 }
+
+export type TableNames = keyof Database["public"]["Tables"];

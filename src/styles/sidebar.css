@@ -1,0 +1,33 @@
+.sidebar-enter {
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+.sidebar-enter-active {
+  transform: translateX(0);
+  transition: transform 0.3s ease;
+}
+.sidebar-exit {
+  transform: translateX(0);
+  transition: transform 0.3s ease;
+}
+.sidebar-exit-active {
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.overlay-fade-enter {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.overlay-fade-enter-active {
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+.overlay-fade-exit {
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+.overlay-fade-exit-active {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}

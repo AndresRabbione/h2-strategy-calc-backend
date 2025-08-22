@@ -18,12 +18,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.className} antialiased min-h-full flex flex-col min-w-full`}
+        className={`${inter.className} antialiased min-h-screen flex flex-col min-w-full`}
       >
         <header>
           <Navbar></Navbar>
         </header>
-        <main>{children}</main>
+        <main className="flex-1 flex flex-col h-full justify-center bg-gray-900">
+          {children}
+        </main>
       </body>
     </html>
   );
