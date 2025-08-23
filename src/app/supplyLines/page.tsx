@@ -7,7 +7,7 @@ import SupplyLineContainer from "../../../components/supplyLineContainer";
 export default async function SupplyLines({ searchParams }: PageProps) {
   const supabase = await createClient();
 
-  const limit = 7;
+  const limit = 10;
   const awaitedSearchParams = await searchParams;
   const filter: string = awaitedSearchParams.filter ?? "";
   const page: number = awaitedSearchParams?.page
@@ -31,9 +31,10 @@ export default async function SupplyLines({ searchParams }: PageProps) {
             <Pagination
               currentPage={page}
               hasNext={
-                !links ||
-                !(links.length === 0) ||
-                (count !== null && count > limit * page + links.length)
+                links !== null &&
+                links.length !== 0 &&
+                count !== null &&
+                count > limit * page + links.length
               }
             />
             <SearchBar disabled={false}></SearchBar>

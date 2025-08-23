@@ -33,7 +33,7 @@ export default function SupplyLineView({
         disabled={disabled}
       >
         <div className="flex flex-row w-full items-center justify-between">
-          <span className="min-w-[120px] md:min-w-[220px] text-left truncate">
+          <span className="min-w-[120px] md:min-w-[220px] text-left text-balance">
             {link.origin_planet_name}
           </span>
           <div className="flex flex-row justify-center items-center min-w-[96px]">
@@ -82,7 +82,7 @@ export default function SupplyLineView({
               />
             </svg>
           </div>
-          <span className="min-w-[120px] md:min-w-[220px] text-right truncate">
+          <span className="min-w-[120px] md:min-w-[220px] text-right text-balance">
             {link.destination_planet_name}
           </span>
         </div>

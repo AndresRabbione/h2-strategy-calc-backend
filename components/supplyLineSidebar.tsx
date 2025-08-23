@@ -50,7 +50,9 @@ export default function SupplyLineSidebar({
       const { data } = await supabase.from("planet").select("*");
       setPlanets(data ?? []);
     }
+
     fetchPlanets();
+
     const timer = setTimeout(() => setMounted(true), 10);
 
     return () => clearTimeout(timer);
@@ -59,6 +61,7 @@ export default function SupplyLineSidebar({
   function handleClose() {
     setDeleteClicked(false);
     setMounted(false);
+
     setTimeout(() => {
       onClose(edited);
     }, 300);
@@ -66,9 +69,12 @@ export default function SupplyLineSidebar({
 
   async function handleEdit() {
     setSavePending(true);
+
     const supabase = createClient();
+
     if (originChanged && originState) {
       setEdited(true);
+
       const { error: linkError, data: linkData } = await supabase
         .from("supplyLine")
         .update({ planetId: originState.id, bidirectional: directionState })
@@ -103,8 +109,10 @@ export default function SupplyLineSidebar({
         toast.success("Origin updated successfully", sidebarToastConfig);
       }
     }
+
     if (destinationChanged && destinationState) {
       setEdited(true);
+
       const { error: linkError, data: linkData } = await supabase
         .from("supplyLine")
         .update({
@@ -142,8 +150,10 @@ export default function SupplyLineSidebar({
         toast.success("Destination updated successfully", sidebarToastConfig);
       }
     }
+
     if (directionChanged && !destinationChanged && !originChanged) {
       setEdited(true);
+
       const { error: linkError, data: linkData } = await supabase
         .from("supplyLine")
         .update({
@@ -175,6 +185,7 @@ export default function SupplyLineSidebar({
 
   async function handleInsert() {
     if (!originState || !destinationState) return;
+
     setEdited(true);
     setSavePending(true);
 
@@ -188,11 +199,12 @@ export default function SupplyLineSidebar({
         bidirectional: directionState,
       })
       .select();
+
     setOriginChanged(false);
     setDestinationChanged(false);
     setDirectionChanged(false);
-
     setSavePending(false);
+
     if (error) {
       toast.error(
         error.code ? `${error.code}: ${error.message}` : "Something went wrong",
@@ -208,11 +220,16 @@ export default function SupplyLineSidebar({
     setEdited(true);
     setDeleteClicked(false);
     setDeletePending(true);
+
     const supabase = createClient();
+
     const { error } = await supabase
       .from("supplyLine")
       .delete()
       .eq("id", linkState);
+
+    setDeletePending(false);
+
     if (error) {
       toast.error(
         error.code
@@ -220,9 +237,7 @@ export default function SupplyLineSidebar({
           : "Link couldn't be deleted",
         sidebarToastConfig
       );
-    }
-    setDeletePending(false);
-    if (!error) {
+    } else {
       onDelete();
       handleClose();
     }
