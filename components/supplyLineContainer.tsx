@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import SupplyLineView from "./supplyLineView";
 import CreateSupplyLineBtn from "./createSupplyLineButton";
 import { Flip, toast, ToastContainer } from "react-toastify";
+import { useState } from "react";
 
 export default function SupplyLineContainer({
   links,
@@ -21,26 +22,19 @@ export default function SupplyLineContainer({
       }[]
     | null;
 }) {
+  const [isRefreshing, setRefreshing] = useState(false);
   const router = useRouter();
-  const handleSave = () => {
-    router.refresh();
-    toast.success("Supply Line updated", {
-      position: "bottom-left",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: false,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "dark",
-      transition: Flip,
-    });
+  const handleClose = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+      router.refresh();
+    }, 1000);
   };
   const handleDelete = () => {
-    router.refresh();
     toast.success("Supply Line deleted", {
       position: "bottom-left",
-      autoClose: 3000,
+      autoClose: 1000,
       hideProgressBar: false,
       closeOnClick: false,
       pauseOnHover: true,
@@ -54,7 +48,7 @@ export default function SupplyLineContainer({
     <div className="flex flex-col ml-5">
       <ToastContainer
         position="bottom-left"
-        autoClose={5000}
+        autoClose={1000}
         limit={3}
         hideProgressBar={false}
         newestOnTop
@@ -66,9 +60,9 @@ export default function SupplyLineContainer({
         transition={Flip}
       ></ToastContainer>
       <CreateSupplyLineBtn
-        onSave={handleSave}
         onDelete={handleDelete}
-        onInsert={() => router.refresh()}
+        onClose={handleClose}
+        disabled={isRefreshing}
       ></CreateSupplyLineBtn>
       {links && links.length > 0 ? (
         <div className="grid grid-cols-1 p-3 pl-0 md:p-5 md:pl-0 items-center">
@@ -76,8 +70,9 @@ export default function SupplyLineContainer({
             <SupplyLineView
               key={link.supply_line_id}
               link={link}
+              onClose={handleClose}
               onDelete={handleDelete}
-              onSave={handleSave}
+              disabled={isRefreshing}
             ></SupplyLineView>
           ))}
         </div>

@@ -12,18 +12,14 @@ export default function SupplyLineSidebar({
   destinationPlanet,
   bidirectional,
   onClose,
-  onSave,
   onDelete,
-  onInsert,
 }: {
   linkId: number;
   originPlanet: { id: number; name: string; disabled: boolean } | null;
   destinationPlanet: { id: number; name: string; disabled: boolean } | null;
   bidirectional: boolean | null;
-  onClose: () => void;
-  onSave: () => void;
+  onClose: (needsRefresh: boolean) => void;
   onDelete: () => void;
-  onInsert: () => void;
 }) {
   const [originChanged, setOriginChanged] = useState(false);
   const [destinationChanged, setDestinationChanged] = useState(false);
@@ -39,6 +35,7 @@ export default function SupplyLineSidebar({
     { disabled: boolean; id: number; name: string }[]
   >([]);
   const [deleteClicked, setDeleteClicked] = useState(false);
+  const [edited, setEdited] = useState(false);
 
   function findPlanetStatus(id: number): boolean {
     const found = planets.find((planet) => planet.id === id);
@@ -63,7 +60,7 @@ export default function SupplyLineSidebar({
     setDeleteClicked(false);
     setMounted(false);
     setTimeout(() => {
-      onClose();
+      onClose(edited);
     }, 300);
   }
 
@@ -71,13 +68,14 @@ export default function SupplyLineSidebar({
     setSavePending(true);
     const supabase = createClient();
     if (originChanged && originState) {
-      const { error: linkError } = await supabase
+      setEdited(true);
+      const { error: linkError, data: linkData } = await supabase
         .from("supplyLine")
         .update({ planetId: originState.id, bidirectional: directionState })
         .eq("id", linkState)
         .select();
 
-      const { error: planetError } = await supabase
+      const { error: planetError, data: planetData } = await supabase
         .from("planet")
         .update({ disabled: originState.disabled })
         .eq("id", originState.id)
@@ -100,9 +98,14 @@ export default function SupplyLineSidebar({
           sidebarToastConfig
         );
       }
+
+      if (linkData && planetData) {
+        toast.success("Origin updated successfully", sidebarToastConfig);
+      }
     }
     if (destinationChanged && destinationState) {
-      const { error: linkError } = await supabase
+      setEdited(true);
+      const { error: linkError, data: linkData } = await supabase
         .from("supplyLine")
         .update({
           linkedPlanetId: destinationState.id,
@@ -111,7 +114,7 @@ export default function SupplyLineSidebar({
         .eq("id", linkState)
         .select();
 
-      const { error: planetError } = await supabase
+      const { error: planetError, data: planetData } = await supabase
         .from("planet")
         .update({ disabled: destinationState.disabled })
         .eq("id", destinationState.id)
@@ -134,16 +137,45 @@ export default function SupplyLineSidebar({
           sidebarToastConfig
         );
       }
+
+      if (linkData && planetData) {
+        toast.success("Destination updated successfully", sidebarToastConfig);
+      }
+    }
+    if (directionChanged && !destinationChanged && !originChanged) {
+      setEdited(true);
+      const { error: linkError, data: linkData } = await supabase
+        .from("supplyLine")
+        .update({
+          bidirectional: directionState,
+        })
+        .eq("id", linkState)
+        .select();
+
+      setDirectionChanged(false);
+
+      if (linkError) {
+        toast.error(
+          linkError.code
+            ? `${linkError.code}: ${linkError.message}`
+            : "Something went wrong",
+          sidebarToastConfig
+        );
+      }
+
+      if (linkData) {
+        toast.success("Direction updated successfully", sidebarToastConfig);
+      }
     }
 
-    setDirectionChanged(false);
-    setSavePending(false);
+    if (directionChanged) setDirectionChanged(false);
 
-    onSave();
+    setSavePending(false);
   }
 
   async function handleInsert() {
     if (!originState || !destinationState) return;
+    setEdited(true);
     setSavePending(true);
 
     const supabase = createClient();
@@ -161,7 +193,6 @@ export default function SupplyLineSidebar({
     setDirectionChanged(false);
 
     setSavePending(false);
-    onInsert();
     if (error) {
       toast.error(
         error.code ? `${error.code}: ${error.message}` : "Something went wrong",
@@ -174,6 +205,7 @@ export default function SupplyLineSidebar({
   }
 
   async function handleDelete() {
+    setEdited(true);
     setDeleteClicked(false);
     setDeletePending(true);
     const supabase = createClient();

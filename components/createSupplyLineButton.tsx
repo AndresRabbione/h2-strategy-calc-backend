@@ -4,18 +4,19 @@ import { useState } from "react";
 import SupplyLineSidebar from "./supplyLineSidebar";
 
 export default function CreateSupplyLineBtn({
-  onSave,
   onDelete,
-  onInsert,
+  onClose,
+  disabled,
 }: {
-  onSave: () => void;
   onDelete: () => void;
-  onInsert: () => void;
+  onClose: () => void;
+  disabled: boolean;
 }) {
   const [isSidebarOpen, setOpen] = useState(false);
   return (
     <div className="pt-3">
       <button
+        disabled={disabled}
         onClick={() => setOpen((prev) => !prev)}
         className="font-semibold cursor-pointer before:content-['+'] before:mr-1 before:text-super-earth-blue before:text-xl transition-colors delay-75 duration-150 ease-in-out hover:text-super-earth-blue"
       >
@@ -27,10 +28,11 @@ export default function CreateSupplyLineBtn({
           originPlanet={null}
           destinationPlanet={null}
           bidirectional={null}
-          onClose={() => setOpen(false)}
-          onSave={onSave}
+          onClose={() => {
+            setOpen(false);
+            onClose();
+          }}
           onDelete={onDelete}
-          onInsert={onInsert}
         ></SupplyLineSidebar>
       ) : null}
     </div>

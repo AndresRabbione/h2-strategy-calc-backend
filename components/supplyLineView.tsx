@@ -6,7 +6,8 @@ import SupplyLineSidebar from "./supplyLineSidebar";
 export default function SupplyLineView({
   link,
   onDelete,
-  onSave,
+  onClose,
+  disabled,
 }: {
   link: {
     bidirectional: boolean | null;
@@ -19,7 +20,8 @@ export default function SupplyLineView({
     supply_line_id: number | null;
   };
   onDelete: () => void;
-  onSave: () => void;
+  onClose: () => void;
+  disabled: boolean;
 }) {
   const [isSidebarOpen, setOpen] = useState(false);
 
@@ -28,6 +30,7 @@ export default function SupplyLineView({
       <button
         className="rounded p-2 flex flex-row cursor-pointer gap-2 w-full"
         onClick={() => setOpen((prev) => !prev)}
+        disabled={disabled}
       >
         <div className="flex flex-row w-full items-center justify-between">
           <span className="min-w-[120px] md:min-w-[220px] text-left truncate">
@@ -98,10 +101,11 @@ export default function SupplyLineView({
             disabled: link.destination_disabled!,
           }}
           bidirectional={link.bidirectional!}
-          onClose={() => setOpen(false)}
-          onSave={onSave}
+          onClose={(needsRefresh: boolean) => {
+            setOpen(false);
+            if (needsRefresh) onClose();
+          }}
           onDelete={onDelete}
-          onInsert={() => {}}
         ></SupplyLineSidebar>
       ) : null}
     </div>
