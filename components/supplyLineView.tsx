@@ -28,11 +28,11 @@ export default function SupplyLineView({
   return (
     <div>
       <button
-        className="rounded p-2 flex flex-row cursor-pointer gap-2 w-full"
+        className="rounded p-2 flex flex-row justify-center items-center cursor-pointer gap-2"
         onClick={() => setOpen((prev) => !prev)}
         disabled={disabled}
       >
-        <div className="flex flex-row w-full items-center justify-between">
+        <div className="flex flex-row w-full items-center justify-center">
           <span className="min-w-[100px] md:min-w-[220px] text-left text-balance">
             {link.origin_planet_name}
           </span>

@@ -37,7 +37,7 @@ export default function SearchBar({ disabled }: { disabled: boolean }) {
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
       ></link>
       <div className="flex flex-col sm:flex-row sm:items-center gap-1 md:gap-3">
-        <label className="text-white text-lg font-semibold">Filter:</label>
+        <label className="text-white text-lg font-semibold">Search:</label>
         <div className="relative w-full sm:w-auto">
           <input
             disabled={disabled}

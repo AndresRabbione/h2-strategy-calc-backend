@@ -1,4 +1,9 @@
-import { TableNames, ValueTypes } from "@/lib/typeDefinitions";
+import {
+  Assignment,
+  TableNames,
+  Task,
+  ValueTypes,
+} from "@/lib/typeDefinitions";
 import { createClient } from "../supabase/client";
 
 export async function parseValueType(
@@ -120,4 +125,92 @@ export function getTableNameFromType(
       return "" as TableNames;
       break;
   }
+}
+
+export function getAuxValueForType(task: Task, type: ValueTypes): number {
+  let auxValue: number = 0;
+  if (type === ValueTypes.TARGET_ID) {
+    for (let i = 0; i < task.valueTypes.length; i++) {
+      if (task.valueTypes[i] === ValueTypes.TARGET_TYPE) {
+        auxValue = task.values[i];
+        break;
+      }
+    }
+  }
+  if (type === ValueTypes.ITEM) {
+    for (let i = 0; i < task.valueTypes.length; i++) {
+      if (task.valueTypes[i] === ValueTypes.ITEM_TYPE) {
+        auxValue = task.values[i];
+        break;
+      }
+    }
+  }
+
+  return auxValue;
+}
+
+export async function getNumberOfUnparsedValues(
+  assingments: Assignment[]
+): Promise<number> {
+  let count = 0;
+  const supabase = createClient();
+
+  const objectiveTypeIds = new Set<number>();
+  const valueTypeIds = new Set<number>();
+  const valueTypePairs: {
+    valueType: number;
+    value: number;
+    auxValue: number;
+  }[] = [];
+
+  for (const assignment of assingments) {
+    for (const task of assignment.setting.tasks) {
+      objectiveTypeIds.add(task.type);
+      for (let i = 0; i < task.valueTypes.length; i++) {
+        valueTypeIds.add(task.valueTypes[i]);
+        valueTypePairs.push({
+          valueType: task.valueTypes[i],
+          value: task.values[i],
+          auxValue: getAuxValueForType(task, task.valueTypes[i]),
+        });
+      }
+    }
+  }
+
+  const [{ data: objectiveTypes }, { data: valueTypes }] = await Promise.all([
+    supabase
+      .from("objectiveType")
+      .select("*")
+      .in("id", Array.from(objectiveTypeIds)),
+    supabase
+      .from("objectiveValueType")
+      .select("*")
+      .in("id", Array.from(valueTypeIds)),
+  ]);
+
+  // Check missing objectiveTypes
+  const foundObjectiveTypeIds = new Set(objectiveTypes?.map((ot) => ot.id));
+  count += Array.from(objectiveTypeIds).filter(
+    (id) => !foundObjectiveTypeIds.has(id)
+  ).length;
+
+  // Check missing valueTypes
+  const foundValueTypeIds = new Set(valueTypes?.map((vt) => vt.id));
+  count += Array.from(valueTypeIds).filter(
+    (id) => !foundValueTypeIds.has(id)
+  ).length;
+
+  // For value parsing, batch by valueType/table if possible (advanced optimization)
+  // For now, keep as sequential but could be batched further
+  const seenPairs = new Set<string>();
+  for (const { valueType, value, auxValue } of valueTypePairs) {
+    const key = `${valueType}-${value}-${auxValue}`;
+    if (!seenPairs.has(key)) {
+      seenPairs.add(key);
+      const parsedValue = await parseValueType(valueType, value, auxValue);
+      if (parsedValue.length === 0) count++;
+    }
+  }
+
+  return count;
 }
