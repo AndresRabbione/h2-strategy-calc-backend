@@ -9,6 +9,7 @@ import {
 } from "@/lib/typeDefinitions";
 import { calcPlanetProgressPercentage } from "@/utils/heldiversAPI/formulas";
 import ObjectiveProgressBar from "../../../components/objectiveProgressBar";
+import DualObjectiveProgressBar from "../../../components/dualObjProgressBar";
 
 export abstract class Objective {
   completed: boolean;
