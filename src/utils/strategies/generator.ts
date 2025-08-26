@@ -1,7 +1,7 @@
 import { Assignment, Factions, ParsedAssignment } from "@/lib/typeDefinitions";
 import { createClient } from "../supabase/server";
 import { Objective } from "../objectives/classes";
-import { MOParser } from "./classes";
+import { MOParser } from "./parsing";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "../../../database.types";
 

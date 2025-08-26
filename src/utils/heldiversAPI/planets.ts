@@ -1,6 +1,6 @@
 import { Planet } from "@/lib/typeDefinitions";
 
-const api = process.env.API_URL + "/api/v1/planets";
+const api = process.env.NEXT_PUBLIC_HELLDIVERS_API_URL + "/api/v1/planets";
 
 export async function findPlanetById(id: number): Promise<Planet | null> {
   try {

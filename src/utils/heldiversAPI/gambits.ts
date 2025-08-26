@@ -2,7 +2,7 @@ import { Attack, Factions, Planet } from "@/lib/typeDefinitions";
 import { findPlanetById } from "./planets";
 import { createClient } from "../supabase/server";
 
-const api = process.env.API_URL;
+const api = process.env.NEXT_PUBLIC_HELLDIVERS_API_URL;
 
 function isAttackAlreadyFound(sourceId: number, attacks: Attack[]): boolean {
   if (attacks.length === 0) return false;
