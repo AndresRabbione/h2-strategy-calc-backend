@@ -7,7 +7,7 @@ export default function SupplyLineFallback() {
         <h1 className="text-center pb-4 text-3xl font-bold">Supply Lines</h1>
         <div className="bg-gray-700 flex flex-col animate-pulse">
           <div className="flex flex-col md:flex-row md:justify-between w-full">
-            <Pagination currentPage={0} hasNext={false} />
+            <Pagination searchParamsString="" hasNext={false} />
             <div className="p-3 pt-1.5 md:pt-6 md:p-6 md:pr-3 rounded-xl">
               <link
                 rel="stylesheet"
