@@ -1,23 +1,29 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function SearchBar({ disabled }: { disabled: boolean }) {
+export default function SearchBar({
+  disabled,
+  searchParamsString,
+}: {
+  disabled: boolean;
+  searchParamsString: string;
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = new URLSearchParams(searchParamsString);
 
-  const currentFilter = searchParams.get("filter") || "";
+  const filter = searchParams.get("filter") as string;
 
-  const [searchString, setSearchString] = useState(currentFilter);
+  const [searchString, setSearchString] = useState(filter);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       if (searchString.length > 2 || searchString.length === 0) {
-        const params = new URLSearchParams(searchParams);
-        params.set("filter", searchString);
-        params.set("page", "0");
-        router.push(`?${params.toString()}`);
+        const newParams = new URLSearchParams(searchParams.toString());
+        newParams.set("filter", searchString);
+        newParams.set("page", "0");
+        router.push(`?${newParams.toString()}`);
       }
     }, 300);
 

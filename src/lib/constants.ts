@@ -1,6 +1,6 @@
 import { Flip, ToastOptions } from "react-toastify";
 
-export const warStartTime = 1706040313 * 1000;
+export const warStartTime = 1707927760000;
 
 export const sidebarToastConfig = {
   position: "bottom-left",

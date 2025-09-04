@@ -1,21 +1,22 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
-export default function Sorting() {
+export default function Sorting({
+  searchParamsString,
+}: {
+  searchParamsString: string;
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = new URLSearchParams(searchParamsString);
 
   const currentOrder = searchParams.get("order") || "descending";
 
   const orderChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = event.target.value;
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set("order", event.target.value);
 
-    const params = new URLSearchParams(searchParams);
-
-    params.set("order", value);
-
-    router.push(`?${params.toString()}`);
+    router.push(`?${newParams.toString()}`);
   };
 
   return (

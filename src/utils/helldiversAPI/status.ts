@@ -57,6 +57,10 @@ export async function getCurrentImpactMultiplier(): Promise<number> {
       },
     });
 
+    if (request.status === 503) {
+      return 0;
+    }
+
     const responseJson: StatusResponse = await request.json();
     return responseJson.impactMultiplier;
   } catch (e) {

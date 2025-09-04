@@ -1,10 +1,12 @@
 import { createClient } from "@/utils/supabase/server";
 import Sorting from "../../../components/sorting";
 import Pagination from "../../../components/pagination";
-import Link from "next/link";
-import { PageProps } from "../../../.next/types/app/orders/page";
 
-export default async function MajorOrders({ searchParams }: PageProps) {
+export default async function MajorOrders({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const supabase = await createClient();
   const limit = 10;
   const awaitedSearchParams = await searchParams;
@@ -12,6 +14,16 @@ export default async function MajorOrders({ searchParams }: PageProps) {
   const page: number = awaitedSearchParams?.page
     ? Number(awaitedSearchParams.page)
     : 0;
+
+  const currentVerifiedParams = new URLSearchParams();
+
+  Object.entries(awaitedSearchParams).forEach(([key, value]) => {
+    if (value !== undefined) {
+      currentVerifiedParams.set(key, String(value));
+    }
+  });
+  currentVerifiedParams.set("filter", order ? "ascending" : "descending");
+  currentVerifiedParams.set("page", page.toString());
 
   const { count, data: assignments } = await supabase
     .from("assignment")
@@ -27,13 +39,16 @@ export default async function MajorOrders({ searchParams }: PageProps) {
           <h1 className="text-center pb-4 text-3xl font-bold">Major Orders</h1>
           <div className="bg-gray-700">
             <div>
-              <Sorting />
+              <Sorting searchParamsString={currentVerifiedParams.toString()} />
             </div>
             <div className="flex items-center justify-center gap-6 p-5">
               <p className="text-red-900 text-2xl">Something went wrong</p>
             </div>
             <div>
-              <Pagination currentPage={page} hasNext={false} />
+              <Pagination
+                searchParamsString={currentVerifiedParams.toString()}
+                hasNext={false}
+              />
             </div>
           </div>
         </section>
@@ -48,7 +63,7 @@ export default async function MajorOrders({ searchParams }: PageProps) {
           <h1 className="text-center pb-4 text-3xl font-bold">Major Orders</h1>
           <div className="bg-gray-700 flex flex-col flex-1">
             <div>
-              <Sorting />
+              <Sorting searchParamsString={currentVerifiedParams.toString()} />
             </div>
             <div className="flex flex-1 items-center justify-center gap-6 p-5">
               <p className="text-red-900 text-2xl">
@@ -56,7 +71,10 @@ export default async function MajorOrders({ searchParams }: PageProps) {
               </p>
             </div>
             <div>
-              <Pagination currentPage={page} hasNext={false} />
+              <Pagination
+                searchParamsString={currentVerifiedParams.toString()}
+                hasNext={false}
+              />
             </div>
           </div>
         </section>
@@ -70,26 +88,28 @@ export default async function MajorOrders({ searchParams }: PageProps) {
         <h1 className="text-center pb-4 text-3xl font-bold">Major Orders</h1>
         <div className="bg-gray-700 h-full flex flex-col flex-1 rounded shadow">
           <div>
-            <Sorting />
+            <Sorting searchParamsString={currentVerifiedParams.toString()} />
           </div>
           <h2 className="text-2xl font-semibold mb-4 p-5"></h2>
           <div className="grid grid-cols-1 gap-6 p-5 flex-1 h-full">
             {assignments.map((assignment) => (
-              <Link
-                href={`/orders/${assignment.id}`}
+              <div
                 key={assignment.id}
                 className="rounded p-4 h-full self-stretch w-2/5 flex flex-col gap-1"
               >
                 <h3 className="font-semibold text-2xl">
-                  Major Order - {new Date(assignment.endDate).toUTCString()}
+                  Major Order -{" "}
+                  {new Date(assignment.endDate).toLocaleString("en-GB", {
+                    timeZone: "UTC",
+                  }) + " (UTC)"}
                 </h3>
                 <p className="text-xl">{assignment.brief}</p>
-              </Link>
+              </div>
             ))}
           </div>
           <div className="bg-gray-700">
             <Pagination
-              currentPage={page}
+              searchParamsString={currentVerifiedParams.toString()}
               hasNext={
                 count !== null && count > limit * page + assignments.length
               }

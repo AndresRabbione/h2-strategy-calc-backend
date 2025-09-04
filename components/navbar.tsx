@@ -152,16 +152,6 @@ export default function Navbar() {
               Supply Lines
             </Link>
           </li>
-          <li role="menuitem">
-            <Link href={"/objectives"} className="hover:bg-[#041b3d]">
-              Objectives
-            </Link>
-          </li>
-          <li role="menuitem">
-            <Link href={"/values"} className="hover:bg-[#041b3d]">
-              Values
-            </Link>
-          </li>
         </ul>
       </div>
 
@@ -210,12 +200,6 @@ export default function Navbar() {
             className="hover:bg-[#4a4a4b] p-1 rounded"
           >
             Supply Lines
-          </Link>
-          <Link href={"/objectives"} className="hover:bg-[#4a4a4b] p-1 rounded">
-            Objectives
-          </Link>
-          <Link href={"/values"} className="hover:bg-[#4a4a4b] p-1 rounded">
-            Values
           </Link>
         </div>
         {!user || error ? (

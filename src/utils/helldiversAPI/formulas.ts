@@ -5,6 +5,13 @@ export function calcPlanetProgressPercentage(
   return ((maxHealth - health) / maxHealth) * 100;
 }
 
+export function calcPlanetRemainingPercentage(
+  health: number,
+  maxHealth: number
+): number {
+  return (health / maxHealth) * 100;
+}
+
 export function calcPlanetRegenPercentage(
   regenPerSecond: number,
   maxHealth: number

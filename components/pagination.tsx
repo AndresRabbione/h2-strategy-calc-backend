@@ -1,22 +1,26 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Button from "./button";
 
 export default function Pagination({
-  currentPage,
   hasNext,
+  searchParamsString,
 }: {
-  currentPage: number;
   hasNext: boolean;
+  searchParamsString: string;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = new URLSearchParams(searchParamsString);
 
-  const page = (pageNumber: number) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("page", pageNumber.toString());
-    router.push(`?${params.toString()}`);
+  const page = searchParams.get("page")
+    ? parseInt(searchParams.get("page") as string, 10)
+    : 0;
+
+  const pageChange = (pageNumber: number) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set("page", pageNumber.toString());
+    router.push(`?${newParams.toString()}`);
   };
 
   return (
@@ -25,18 +29,18 @@ export default function Pagination({
         {
           <Button
             text={"← Previous Page"}
-            onClick={() => page(currentPage - 1)}
-            disabled={currentPage <= 0}
+            onClick={() => pageChange(page - 1)}
+            disabled={page <= 0}
           />
         }
       </div>
 
-      <div>Page {currentPage + 1}</div>
+      <div>Page {page + 1}</div>
 
       <div>
         <Button
           text={"Next Page →"}
-          onClick={() => page(currentPage + 1)}
+          onClick={() => pageChange(page + 1)}
           disabled={!hasNext}
         />
       </div>

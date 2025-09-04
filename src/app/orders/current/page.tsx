@@ -2,15 +2,15 @@
 
 import { warStartTime } from "@/lib/constants";
 import { ValueTypes } from "@/lib/typeDefinitions";
-import {
-  getCurrentMajorOrders,
-  getStrategicOpportunities,
-} from "@/utils/heldiversAPI/assignments";
 import { parseValueType } from "@/utils/parsing/values";
 import { createClient } from "@/utils/supabase/server";
 import NoData from "../../../../components/noData";
 import RawObjHeader from "../../../../components/rawObjHead";
 import RawObjValuePair from "../../../../components/rawObjValuePair";
+import {
+  getCurrentMajorOrders,
+  getStrategicOpportunities,
+} from "@/utils/helldiversAPI/assignments";
 
 export default async function CurrentOrder() {
   const majorOrders = await getCurrentMajorOrders();
@@ -38,7 +38,9 @@ export default async function CurrentOrder() {
           <h2 className="text-2xl mb-2">
             Major Order -{" "}
             {/* FIXME: This doesn't produce the correct date, figure it out sometime */}
-            {new Date(warStartTime + majorOrder.startTime * 1000).toUTCString()}
+            {new Date(
+              warStartTime + majorOrder.startTime * 1000
+            ).toLocaleString("en-GB", { timeZone: "UTC" }) + " (UTC)"}
           </h2>
 
           <div className="flex flex-col xl:flex-row xl:justify-center xl:divide-x-2 xl:divide-gray-50">

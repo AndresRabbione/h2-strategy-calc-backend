@@ -1,4 +1,3 @@
-import { Objective } from "@/utils/objectives/classes";
 import { Database } from "../../database.types";
 
 export type Cost = {
@@ -24,13 +23,21 @@ export type TacticalAction = {
   activeEffectIds: number[];
 };
 
-export type SpaceStation = {
+export type SpaceStationRaw = {
   id32: number;
   planetIndex: number;
   lastElectionId: string;
   currentElectionId: string;
   currentElectionEndWarTime: number;
   flags: 1;
+  tacticalActions: TacticalAction[];
+};
+
+export type SpaceStationV2 = {
+  id32: number;
+  planet: Planet;
+  electionEnd: string;
+  flags: number;
   tacticalActions: TacticalAction[];
 };
 
@@ -65,7 +72,6 @@ export type Assignment = {
 };
 
 export enum Factions {
-  // Confirmed, used for planet data as the v1 endpoints use the names instead of ids
   HUMANS = "Humans",
   TERMINIDS = "Terminids",
   AUTOMATONS = "Automaton",
@@ -73,7 +79,6 @@ export enum Factions {
 }
 
 export enum FactionIDs {
-  //Confirmed, used for MO parsing as the /raw endpoints use ids, not names
   HUMANS = 1,
   TERMINIDS = 2,
   AUTOMATONS = 3,
@@ -86,14 +91,6 @@ export enum RegionSizes {
   CITY = "City",
   MEGACITY = "MegaCity",
 }
-
-export type SupplyLines = {
-  [planetName: string]: {
-    index: number;
-    links: { name: string; index: number }[];
-    disabled: boolean;
-  };
-};
 
 export type Biome = {
   name: string;
@@ -181,7 +178,7 @@ export enum ObjectiveTypes {
   LIBERATE = 11, //Not sure about this one
   OPERATIONS = 9,
   KILL = 3,
-  COLLECT,
+  COLLECT = 2,
   DEFEND_AMOUNT,
   LIBERATE_MORE,
   DEFEND = 12, //Not sure about this one
@@ -190,7 +187,7 @@ export enum ObjectiveTypes {
 export enum ValueTypes {
   TARGET_FACTION = 1,
   AMOUNT = 3,
-  TARGET_TYPE = 11, //Not sure about this one
+  TARGET_TYPE = 11,
   TARGET_ID = 12,
   DIFFICULTY = 9,
   ENEMY = 4,
@@ -198,39 +195,22 @@ export enum ValueTypes {
   ITEM_TYPE = 6,
 }
 
-export enum Enemies {
-  CHARGER = "Charger",
-  BILE_TITAN = "Bile Titan",
-  HULK = "Hulk",
-  SHRIEKER = "Shrieker",
-  IMPALER = "Impaler",
-  FACTORY_STRIDER = "Factory Strider",
-  FLESHMOB = "Fleshmob",
-  LEVIATHAN = "Leviathan",
-  UNKNOWN = "Unknown",
-}
-
 export enum EnemyIds {
-  CHARGER,
-  BILE_TITAN,
+  CHARGER = 1299714559,
+  BILE_TITAN = 2514244534,
   HULK,
   SHRIEKER = 793026793,
   IMPALER = 1046000873,
   FACTORY_STRIDER = 1153658728,
   FLESHMOB = 2880434041,
   LEVIATHAN = 3097344451,
+  TROOPER = 4039692928,
   UNKNOWN = -1,
-}
-
-export enum Items {
-  COMMON = "Common Sample",
-  RARE = "Rare Sample",
-  SUPER_RARE = "Super Sample",
-  UNKNOWN = "Unknown",
+  ANY = 0,
 }
 
 export enum ItemIds {
-  COMMON,
+  COMMON = 3992382197,
   RARE = 2985106497,
   SUPER_RARE,
   MEDAL = 897894480,
@@ -252,10 +232,15 @@ export type DSSStep = {
 };
 
 export type StrategyStep = {
-  objective: Objective | null;
-  targetPlanet: Planet | null;
-  assignedPlayerPercentage: number;
-  priority: number;
+  id: number;
+  objectiveId: number;
+  planetId: number;
+  playerPercentage: number;
+  strategyId: number;
+  createdAt: string;
+  originalTimestamp: string;
+  branch: number;
+  progress: number;
 };
 
 export type Sector = {
@@ -263,4 +248,62 @@ export type Sector = {
   name: string;
 };
 
+export type DBObjectiveInsert = {
+  assignmentId: number;
+  planetId: number | null;
+  factionId: number | null;
+  enemyId: number | null;
+  playerProgress: number;
+  type: number;
+  totalAmount: number | null;
+  itemId: number | null;
+  enemyProgress: number | null;
+  stratagemId: number | null;
+  difficulty: number | null;
+  sectorId: number | null;
+  objectiveIndex: number;
+};
+
+export type DBObjective = {
+  id: number;
+  assignmentId: number;
+  planetId: number | null;
+  factionId: number | null;
+  enemyId: number | null;
+  playerProgress: number;
+  type: number;
+  totalAmount: number | null;
+  itemId: number | null;
+  enemyProgress: number | null;
+  stratagemId: number | null;
+  difficulty: number | null;
+  sectorId: number | null;
+  objectiveIndex: number;
+};
+
+export type FullParsedAssignment = {
+  brief: string | null;
+  endDate: string;
+  id: number;
+  isMajorOrder: boolean;
+  title: string | null;
+  objective: DBObjective[];
+};
+
+export type PlanetSnapshotInsert = {
+  planetId: number;
+  eventId: number | null;
+  maxHealth: number;
+  health: number;
+  createdAt: string;
+};
+
+export type PlanetSnapshotFull = {
+  id: number;
+  planetId: number;
+  eventId: number | null;
+  maxHealth: number;
+  health: number;
+  createdAt: string;
+};
 export type TableNames = keyof Database["public"]["Tables"];
