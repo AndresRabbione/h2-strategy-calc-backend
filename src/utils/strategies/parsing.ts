@@ -1,11 +1,8 @@
 import {
   Assignment,
-  Enemies,
   EnemyIds,
   FactionIDs,
-  Factions,
   ItemIds,
-  Items,
   ObjectiveTypes,
   ParsedAssignment,
   Planet,
@@ -14,13 +11,13 @@ import {
 } from "@/lib/typeDefinitions";
 import {
   CollectionObjective,
+  DefendAmountObjective,
   KillObjective,
+  LiberateMoreObjective,
   Objective,
   OperationObjective,
   PlanetObjective,
 } from "../objectives/classes";
-import { findPlanetById } from "../heldiversAPI/planets";
-import { isUnderAttack } from "../heldiversAPI/gambits";
 import { createClient } from "../supabase/server";
 
 export class MOParser {
@@ -42,101 +39,34 @@ export class MOParser {
     return false;
   }
 
-  private parseFactionId(factionId: number): Factions {
-    switch (factionId) {
-      case FactionIDs.HUMANS:
-        return Factions.HUMANS;
-        break;
-      case FactionIDs.TERMINIDS:
-        return Factions.TERMINIDS;
-        break;
-      case FactionIDs.AUTOMATONS:
-        return Factions.AUTOMATONS;
-        break;
-      case FactionIDs.ILLUMINATE:
-        return Factions.HUMANS;
-        break;
-      default:
-        return Factions.HUMANS;
-        break;
-    }
-  }
-
-  private parseEnemyId(enemyId: number): Enemies {
-    switch (enemyId) {
-      case EnemyIds.BILE_TITAN:
-        return Enemies.BILE_TITAN;
-        break;
-      case EnemyIds.CHARGER:
-        return Enemies.CHARGER;
-        break;
-      case EnemyIds.HULK:
-        return Enemies.HULK;
-        break;
-      case EnemyIds.FACTORY_STRIDER:
-        return Enemies.FACTORY_STRIDER;
-        break;
-      case EnemyIds.FLESHMOB:
-        return Enemies.FLESHMOB;
-        break;
-      case EnemyIds.IMPALER:
-        return Enemies.IMPALER;
-        break;
-      case EnemyIds.LEVIATHAN:
-        return Enemies.LEVIATHAN;
-        break;
-      case EnemyIds.SHRIEKER:
-        return Enemies.SHRIEKER;
-        break;
-      default:
-        return Enemies.UNKNOWN;
-        break;
-    }
-  }
-
-  private parseItemId(itemId: number): Items {
-    switch (itemId) {
-      case ItemIds.COMMON:
-        return Items.COMMON;
-        break;
-      case ItemIds.RARE:
-        return Items.RARE;
-        break;
-      case ItemIds.SUPER_RARE:
-        return Items.SUPER_RARE;
-        break;
-      default:
-        return Items.UNKNOWN;
-        break;
-    }
-  }
-
-  private async parsePlanetObj(
+  private parsePlanetObj(
     objective: Task,
-    progress: number
-  ): Promise<Objective> {
+    progress: number,
+    allPlanets: Planet[]
+  ): Objective {
     let target: Planet | null;
 
     for (let i = 0; i < objective.values.length; i++) {
       if (objective.valueTypes[i] === ValueTypes.TARGET_ID) {
-        target = await findPlanetById(objective.values[i]);
+        target = allPlanets[objective.values[i]];
       }
     }
 
     return new PlanetObjective(
-      progress === 1 && !(await isUnderAttack(target!.index)),
+      progress === 1 && !target!.event,
       objective.type,
       target!
     );
   }
 
-  private async parseOperationObj(
+  private parseOperationObj(
     objective: Task,
-    progress: number
-  ): Promise<Objective> {
+    progress: number,
+    allPlanets: Planet[]
+  ): Objective {
     let complete: boolean = false;
     let difficulty: number | null = null;
-    let faction: Factions | null = null;
+    let faction: FactionIDs | null = null;
     let planet: Planet | null = null;
     let total: number = 0;
 
@@ -144,16 +74,16 @@ export class MOParser {
       switch (objective.valueTypes[i]) {
         case ValueTypes.AMOUNT:
           total = objective.values[i];
-          complete = progress >= objective.values[i];
+          complete = progress >= total;
           break;
         case ValueTypes.DIFFICULTY:
           difficulty = objective.values[i];
           break;
         case ValueTypes.TARGET_ID:
-          planet = await findPlanetById(objective.values[i]);
+          planet = allPlanets[objective.values[i]];
           break;
         case ValueTypes.TARGET_FACTION:
-          faction = this.parseFactionId(objective.values[i]);
+          faction = objective.values[i];
           break;
         default:
           break;
@@ -166,18 +96,21 @@ export class MOParser {
       total,
       progress,
       faction,
-      planet
+      planet,
+      -1
     );
   }
 
-  private async parseKillObj(
+  private parseKillObj(
     objective: Task,
-    progress: number
-  ): Promise<Objective> {
+    progress: number,
+    allPlanets: Planet[]
+  ): Objective {
     let complete: boolean = false;
-    let faction: Factions | null = null;
-    let enemy: Enemies | null = null;
+    let faction: FactionIDs | null = null;
+    let enemy: EnemyIds | null = null;
     let planet: Planet | null = null;
+    let sector: number | null = null;
     let total: number = 0;
 
     for (let i = 0; i < objective.values.length; i++) {
@@ -187,48 +120,73 @@ export class MOParser {
           complete = progress >= objective.values[i];
           break;
         case ValueTypes.TARGET_FACTION:
-          faction = this.parseFactionId(objective.values[i]);
+          faction = objective.values[i];
           break;
         case ValueTypes.ENEMY:
-          //TODO: This needs to be changed once enemyIDS are known
-          enemy = this.parseEnemyId(objective.values[i]);
+          enemy = objective.values[i];
           break;
         case ValueTypes.TARGET_ID:
-          planet = await findPlanetById(objective.values[i]);
+          let auxValue = 0;
+          for (const type of objective.valueTypes) {
+            if (type === ValueTypes.TARGET_TYPE) auxValue = type;
+          }
+          planet = auxValue === 1 ? allPlanets[objective.values[i]] : null;
+          sector = auxValue === 2 ? objective.values[i] : null;
           break;
       }
     }
 
-    return new KillObjective(faction, enemy, planet, progress, total, complete);
+    return new KillObjective(
+      faction,
+      enemy,
+      planet,
+      progress,
+      total,
+      complete,
+      sector,
+      -1
+    );
   }
 
-  private async parseCollectionObj(
+  private parseCollectionObj(
     objective: Task,
-    progress: number
-  ): Promise<Objective> {
+    progress: number,
+    allPlanets: Planet[]
+  ): Objective {
     let complete: boolean = false;
-    let faction: Factions | null = null;
-    let item: Items = Items.COMMON;
+    let faction: FactionIDs | null = null;
+    let item: ItemIds = ItemIds.COMMON;
     let planet: Planet | null = null;
     let total: number = 0;
-    // eslint-disable-next-line prefer-const
     let sector: number | null = null;
 
     for (let i = 0; i < objective.values.length; i++) {
       switch (objective.valueTypes[i]) {
         case ValueTypes.AMOUNT:
           total = objective.values[i];
-          complete = progress >= objective.values[i];
+          complete = progress >= total;
           break;
         case ValueTypes.TARGET_FACTION:
-          faction = this.parseFactionId(objective.values[i]);
+          faction = objective.values[i];
           break;
         case ValueTypes.ITEM:
-          //TODO: This needs to be changed once enemyIDS are known
-          item = this.parseItemId(objective.values[i]);
+          item = objective.values[i];
           break;
         case ValueTypes.TARGET_ID:
-          planet = await findPlanetById(objective.values[i]);
+          console.log("HERE");
+          let auxValue = 0;
+          for (
+            let currType = 0;
+            currType < objective.valueTypes.length;
+            currType++
+          ) {
+            if (objective.valueTypes[currType] === ValueTypes.TARGET_TYPE)
+              auxValue = objective.values[currType];
+          }
+          console.log(auxValue);
+          planet = auxValue === 1 ? allPlanets[objective.values[i]] : null;
+          sector = auxValue === 2 ? objective.values[i] : null;
+          console.log(planet);
           break;
       }
     }
@@ -240,30 +198,78 @@ export class MOParser {
       item,
       progress,
       total,
-      sector
+      sector,
+      -1
     );
+  }
+
+  private parsedLiberateMoreObj(objective: Task, progress: number): Objective {
+    let faction: FactionIDs | null = null;
+    let planetsLost: number = 0;
+
+    for (let i = 0; i < objective.values.length; i++) {
+      switch (objective.valueTypes[i]) {
+        case ValueTypes.AMOUNT:
+          planetsLost = objective.values[i];
+          break;
+        case ValueTypes.TARGET_FACTION:
+          faction = objective.values[i];
+          break;
+      }
+    }
+
+    return new LiberateMoreObjective(false, faction, progress, planetsLost, -1);
+  }
+
+  private parsedDefendAmountObj(objective: Task, progress: number): Objective {
+    let complete: boolean = false;
+    let faction: FactionIDs | null = null;
+    let total: number = 0;
+
+    for (let i = 0; i < objective.values.length; i++) {
+      switch (objective.valueTypes[i]) {
+        case ValueTypes.AMOUNT:
+          total = objective.values[i];
+          complete = progress >= total;
+          break;
+        case ValueTypes.TARGET_FACTION:
+          faction = objective.values[i];
+          break;
+      }
+    }
+
+    return new DefendAmountObjective(complete, faction, total, progress, -1);
   }
 
   public async getParsedObjective(
     objective: Task,
-    progress: number
+    progress: number,
+    allPlanets: Planet[]
   ): Promise<Objective | null> {
     switch (objective.type) {
       case ObjectiveTypes.HOLD:
-        return await this.parsePlanetObj(objective, progress);
+        return this.parsePlanetObj(objective, progress, allPlanets);
         break;
       case ObjectiveTypes.OPERATIONS:
-        return await this.parseOperationObj(objective, progress);
+        return this.parseOperationObj(objective, progress, allPlanets);
         break;
       case ObjectiveTypes.COLLECT:
-        return await this.parseCollectionObj(objective, progress);
+        return this.parseCollectionObj(objective, progress, allPlanets);
         break;
       case ObjectiveTypes.DEFEND_AMOUNT:
+        return this.parsedDefendAmountObj(objective, progress);
         break;
       case ObjectiveTypes.KILL:
-        return this.parseKillObj(objective, progress);
+        return this.parseKillObj(objective, progress, allPlanets);
         break;
       case ObjectiveTypes.LIBERATE:
+        return this.parsePlanetObj(objective, progress, allPlanets);
+        break;
+      case ObjectiveTypes.DEFEND:
+        return this.parsePlanetObj(objective, progress, allPlanets);
+        break;
+      case ObjectiveTypes.LIBERATE_MORE:
+        return this.parsedLiberateMoreObj(objective, progress);
         break;
     }
 

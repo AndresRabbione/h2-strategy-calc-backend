@@ -1,11 +1,20 @@
 import { Factions, Planet } from "@/lib/typeDefinitions";
-import { findPlanetById } from "../heldiversAPI/planets";
 import { createClient } from "../supabase/server";
+import { fetchAllPlanets } from "../helldiversAPI/planets";
+
+export type DBLinks = {
+  bidirectional: boolean | null;
+  destination_disabled: boolean | null;
+  destination_planet_name: string | null;
+  linkedPlanetId: number | null;
+  origin_disabled: boolean | null;
+  origin_planet_name: string | null;
+  planetId: number | null;
+  supply_line_id: number | null;
+}[];
 
 export class PlanetRouter {
-  constructor() {}
-
-  protected calcRouteResistance(planets: Planet[]): number {
+  private calcRouteResistance(planets: Planet[]): number {
     return planets.reduce(
       (accumulator, currentPlanet) =>
         accumulator + currentPlanet.regenPerSecond,
@@ -13,159 +22,114 @@ export class PlanetRouter {
     );
   }
 
-  protected async getAllRoutesStartingWithPlanet(
-    startingPlanet: Planet,
-    currentRoute: Planet[] = [],
-    visited: Set<number> = new Set()
-  ): Promise<Planet[][]> {
+  public async buildAdjacencyMap(): Promise<Map<number, DBLinks>> {
     const supabase = await createClient();
-    // Discarding the route when it crosses a disabled planet or finding a circular dependancy
-    const { data: linksFromPlanet } = await supabase
-      ?.from("supplyLineFull")
-      .select("*")
-      .eq("planetId", startingPlanet.index);
-    const { data: linksToPlanet } = await supabase
-      .from("supplyLineFull")
-      .select("*")
-      .eq("linkedPlanetId", startingPlanet.index);
+    const { data: links } = await supabase.from("supplyLineFull").select("*");
 
-    const links =
-      linksFromPlanet && linksToPlanet
-        ? [...linksFromPlanet, ...linksToPlanet]
-        : linksFromPlanet && !linksToPlanet
-        ? linksFromPlanet
-        : !linksFromPlanet && linksToPlanet
-        ? linksToPlanet
-        : [];
+    const adjacency = new Map<number, DBLinks>();
+    if (!links) return adjacency;
 
-    const isDisabled =
-      startingPlanet.index === links[0].planetId
-        ? links[0].origin_disabled
-        : links[0].destination_disabled ?? false;
+    for (const link of links) {
+      if (link.planetId && link.linkedPlanetId) {
+        if (!adjacency.has(link.planetId!)) adjacency.set(link.planetId!, []);
+      }
+
+      if (!adjacency.has(link.linkedPlanetId!)) {
+        adjacency.set(link.linkedPlanetId!, []);
+      }
+
+      adjacency.get(link.planetId!)!.push(link);
+      adjacency.get(link.linkedPlanetId!)!.push(link);
+    }
+
+    return adjacency;
+  }
+
+  private getAllRoutesDFS(
+    startingPlanet: Planet,
+    adjacency: Map<number, DBLinks>,
+    allPlanets: Planet[],
+    visited: Set<number> = new Set(),
+    currentRoute: Planet[] = [],
+    maxDepth = 5
+  ): Planet[][] {
+    const links = adjacency.get(startingPlanet.index) ?? [];
+
+    // Avoid circling back, disabled planets, or excessive depth
+    const isDisabled = links.some(
+      (l) =>
+        (l.planetId === startingPlanet.index && l.origin_disabled) ||
+        (l.linkedPlanetId === startingPlanet.index && l.destination_disabled)
+    );
+
     if (
       visited.has(startingPlanet.index) ||
-      isDisabled ||
-      currentRoute.length > 5
-    )
+      currentRoute.length > maxDepth ||
+      isDisabled
+    ) {
       return [];
+    }
 
-    // Adding the next planet in the route and marking it as seen
     const newRoute = [...currentRoute, startingPlanet];
     visited.add(startingPlanet.index);
 
-    // The route is complete if it finds a plant under Super Earth control
+    // This route is complete, we found a friedly planet
     if (startingPlanet.currentOwner === Factions.HUMANS) {
       return [newRoute];
     }
 
-    // The route is invalid if there are no remaining links
-    if (!links || links.length === 0) {
-      return [];
-    }
-
-    let allRoutes: Planet[][] = [];
-
-    // Searching recursivley for all the routes
+    const allRoutes: Planet[][] = [];
     for (const link of links) {
-      const nextPlanet = await findPlanetById(
+      const nextId =
         startingPlanet.index === link.planetId
-          ? link.linkedPlanetId!
-          : link.planetId!
-      );
+          ? link.linkedPlanetId
+          : link.planetId;
+      const nextPlanet = allPlanets[nextId!];
       if (!nextPlanet) continue;
-      const routes = await this.getAllRoutesStartingWithPlanet(
+
+      const routes = this.getAllRoutesDFS(
         nextPlanet,
+        adjacency,
+        allPlanets,
+        new Set(visited),
         newRoute,
-        new Set(visited)
+        maxDepth
       );
-      allRoutes = allRoutes.concat(routes);
+      allRoutes.push(...routes);
     }
 
     return allRoutes;
   }
 
-  public async getAllRoutesForPlanet(planet: Planet): Promise<Planet[][]> {
-    const supabase = await createClient();
-
-    const { data: linksFromPlanet } = await supabase
-      ?.from("supplyLineFull")
-      .select("*")
-      .eq("planetId", planet.index);
-    const { data: linksToPlanet } = await supabase
-      .from("supplyLineFull")
-      .select("*")
-      .eq("linkedPlanetId", planet.index);
-
-    const links =
-      linksFromPlanet && linksToPlanet
-        ? [...linksFromPlanet, ...linksToPlanet]
-        : linksFromPlanet && !linksToPlanet
-        ? linksFromPlanet
-        : !linksFromPlanet && linksToPlanet
-        ? linksToPlanet
-        : [];
-
-    for (const link of links) {
-      const fullPlanetData = await findPlanetById(
-        planet.index === link.planetId ? link.linkedPlanetId! : link.planetId!
-      );
-
-      if (!fullPlanetData) return [];
-
-      const routes = await this.getAllRoutesStartingWithPlanet(fullPlanetData);
-
-      return routes;
-    }
-
-    return [];
-  }
-
   public async findShortestRoute(planet: Planet): Promise<Planet[]> {
-    const routes = await this.getAllRoutesForPlanet(planet);
-    const routesRegen: number[] = [];
+    const [adjacency, allPlanets] = await Promise.all([
+      this.buildAdjacencyMap(),
+      fetchAllPlanets(),
+    ]);
 
-    for (const route of routes) {
-      const totalRegen = this.calcRouteResistance(route);
+    const links = adjacency.get(planet.index) ?? [];
 
-      routesRegen.push(totalRegen);
-    }
-
-    const index = routesRegen.indexOf(Math.min(...routesRegen));
-
-    return routes[index];
-  }
-
-  public async isPlanetAvailable(planet: Planet): Promise<boolean> {
-    const supabase = await createClient();
-
-    const { data: linksFromPlanet } = await supabase
-      ?.from("supplyLineFull")
-      .select("*")
-      .eq("planetId", planet.index);
-    const { data: linksToPlanet } = await supabase
-      .from("supplyLineFull")
-      .select("*")
-      .eq("linkedPlanetId", planet.index);
-
-    const links =
-      linksFromPlanet && linksToPlanet
-        ? [...linksFromPlanet, ...linksToPlanet]
-        : linksFromPlanet && !linksToPlanet
-        ? linksFromPlanet
-        : !linksFromPlanet && linksToPlanet
-        ? linksToPlanet
-        : [];
-
+    // Check direct connection first
     for (const link of links) {
-      const planetData = await findPlanetById(
-        planet.index === link.planetId ? link.linkedPlanetId! : link.planetId!
-      );
-
-      if (!planetData) return false;
-
-      if (planetData.currentOwner === Factions.HUMANS) return true;
+      const neighborId =
+        link.planetId === planet.index ? link.linkedPlanetId : link.planetId;
+      const neighbor = allPlanets[neighborId!];
+      if (neighbor && neighbor.currentOwner === Factions.HUMANS) {
+        return [planet, neighbor];
+      }
     }
 
-    return false;
+    // Explore all routes
+    const routes = this.getAllRoutesDFS(planet, adjacency, allPlanets);
+    if (routes.length === 0) return [];
+
+    // Pick route with minimum resistance
+    const scoredRoutes = routes.map((route) => ({
+      route,
+      score: this.calcRouteResistance(route),
+    }));
+
+    scoredRoutes.sort((a, b) => a.score - b.score);
+    return scoredRoutes[0].route;
   }
 }
