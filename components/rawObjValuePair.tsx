@@ -12,12 +12,14 @@ export default function RawObjValuePair({
   parsedValue,
   value,
   auxValue,
+  difficulties,
 }: {
   valueType: { id: number; name: string }[] | null;
   currentValueType: number;
   parsedValue: { id: number; name: string }[];
   value: number;
   auxValue: number;
+  difficulties: { id: number; name: string }[];
 }) {
   const [isTypeOpen, setTypeOpen] = useState(false);
   const [isValueOpen, setValueOpen] = useState(false);
@@ -54,6 +56,7 @@ export default function RawObjValuePair({
       setValueSubmit(false);
     }
   }, [typeSubmitted, valueSubmitted]);
+
   return (
     <div className="flex flex-col gap-3 xl:gap-2">
       <div className="flex flex-row gap-2 items-center">
@@ -77,6 +80,7 @@ export default function RawObjValuePair({
             tableName="objectiveValueType"
             onClose={() => setTypeOpen(false)}
             onSave={() => setTypeSubmit(true)}
+            difficulties={difficulties}
           ></MOValSidebar>
         ) : null}
       </div>
@@ -112,6 +116,7 @@ export default function RawObjValuePair({
             tableName={tableName}
             onClose={() => setValueOpen(false)}
             onSave={() => setValueSubmit(true)}
+            difficulties={difficulties}
           ></MOValSidebar>
         ) : null}
       </div>

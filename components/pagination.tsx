@@ -13,7 +13,7 @@ export default function Pagination({
   const router = useRouter();
   const searchParams = new URLSearchParams(searchParamsString);
 
-  const page = searchParams.get("page")
+  const page = searchParams.has("page")
     ? parseInt(searchParams.get("page") as string, 10)
     : 0;
 

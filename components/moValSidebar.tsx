@@ -13,19 +13,32 @@ export default function MOValSidebar({
   tableName,
   onClose,
   onSave,
+  difficulties,
 }: {
   id: number;
-  valObj: { id: number; name: string }[];
+  valObj: {
+    id: number;
+    name: string;
+    min_difficulty?: number;
+    max_difficulty?: number;
+  }[];
   tableName: TableNames;
   onClose: () => void;
   onSave: () => void;
+  difficulties: { id: number; name: string }[];
 }) {
   const [nameValue, setName] = useState(valObj[0]?.name || "");
-  const [nameChanged, setChanged] = useState(false);
-  const [selectItemType] = useState(tableName === "item");
+  const [objChanged, setChanged] = useState(false);
   const [selectedTable, setTable] = useState(tableName);
   const [isMounted, setMounted] = useState(false);
   const [isPending, setPending] = useState(false);
+  const [selectedDifficulties, setDifficulties] = useState<{
+    minDifficulty: number;
+    maxDifficulty: number;
+  }>({
+    minDifficulty: valObj[0]?.min_difficulty ?? 1,
+    maxDifficulty: valObj[0]?.max_difficulty ?? 10,
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 10);
@@ -48,12 +61,23 @@ export default function MOValSidebar({
       );
       return;
     }
+
     setPending(true);
     const supabase = createClient();
 
+    let updateData: Record<string, number | string> = { name: nameValue };
+
+    if (selectedTable === "item" || selectedTable === "enemy") {
+      updateData = {
+        ...updateData,
+        min_difficulty: selectedDifficulties.minDifficulty,
+        max_difficulty: selectedDifficulties.maxDifficulty,
+      };
+    }
+
     const { error, data } = await supabase
       .from(selectedTable)
-      .update({ name: nameValue })
+      .update(updateData)
       .eq("id", id)
       .select();
 
@@ -78,24 +102,53 @@ export default function MOValSidebar({
       );
       return;
     }
+
     setPending(true);
     const supabase = createClient();
 
-    const { error, data } = await supabase
-      .from(selectedTable)
-      .insert([{ id: id, name: nameValue }])
-      .select();
+    if (selectedTable === "item" || selectedTable === "enemy") {
+      const { error, data } = await supabase
+        .from(selectedTable)
+        .insert([
+          {
+            id: id,
+            name: nameValue,
+            min_difficulty: selectedDifficulties.minDifficulty,
+            max_difficulty: selectedDifficulties.maxDifficulty,
+          },
+        ])
+        .select()
+        .single();
+      if (error) {
+        toast.error(
+          error.code
+            ? `${error.code}: ${error.message}`
+            : "Something went wrong",
+          sidebarToastConfig
+        );
+      } else if (data) {
+        toast.success("Changes saved", sidebarToastConfig);
+      }
+    } else {
+      const { error, data } = await supabase
+        .from(selectedTable)
+        .insert([{ id: id, name: nameValue }])
+        .select()
+        .single();
+      if (error) {
+        toast.error(
+          error.code
+            ? `${error.code}: ${error.message}`
+            : "Something went wrong",
+          sidebarToastConfig
+        );
+      } else if (data) {
+        toast.success("Changes saved", sidebarToastConfig);
+      }
+    }
 
     setPending(false);
     onSave();
-    if (error) {
-      toast.error(
-        error.code ? `${error.code}: ${error.message}` : "Something went wrong",
-        sidebarToastConfig
-      );
-    } else if (data) {
-      toast.success("Changes saved", sidebarToastConfig);
-    }
   }
 
   return (
@@ -144,7 +197,7 @@ export default function MOValSidebar({
               <span className="pl-2">ID</span>
               <span className="border-1 p-2 rounded-md">{id}</span>
             </div>
-            {selectItemType ? (
+            {tableName === "item" ? (
               <div className="flex flex-col gap-0.5">
                 <label className="pl-2" htmlFor="itemTypeSelect">
                   Table
@@ -179,13 +232,65 @@ export default function MOValSidebar({
                 value={nameValue}
               />
             </div>
+            {selectedTable === "item" || selectedTable === "enemy" ? (
+              <div className="flex flex-col gap-0.5">
+                <label htmlFor="minDifficultySelect" className="pl-2">
+                  Minimum Difficulty
+                </label>
+                <select
+                  className="border-1 p-2 text-start rounded-md items-start justify-start placeholder-gray-400 bg-gray-800"
+                  name="minDifficultySelect"
+                  id="minDifficultySelect"
+                  value={selectedDifficulties.minDifficulty}
+                  onChange={(event) => {
+                    setDifficulties({
+                      ...selectedDifficulties,
+                      minDifficulty: parseInt(event.target.value),
+                    });
+                    setChanged(true);
+                  }}
+                >
+                  {difficulties.map((difficulty) => (
+                    <option value={difficulty.id} key={difficulty.id}>
+                      {difficulty.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+            {selectedTable === "item" || selectedTable === "enemy" ? (
+              <div className="flex flex-col gap-0.5">
+                <label htmlFor="maxDifficultySelect" className="pl-2">
+                  Maximum Difficulty
+                </label>
+                <select
+                  className="border-1 p-2 text-start rounded-md items-start justify-start placeholder-gray-400 bg-gray-800"
+                  name="maxDifficultySelect"
+                  id="maxDifficultySelect"
+                  value={selectedDifficulties.maxDifficulty}
+                  onChange={(event) => {
+                    setDifficulties({
+                      ...selectedDifficulties,
+                      maxDifficulty: parseInt(event.target.value),
+                    });
+                    setChanged(true);
+                  }}
+                >
+                  {difficulties.map((difficulty) => (
+                    <option value={difficulty.id} key={difficulty.id}>
+                      {difficulty.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-col justify-center items-center">
             <button
               type="button"
-              disabled={isPending || (!nameChanged && nameValue.length > 0)}
+              disabled={isPending || (!objChanged && nameValue.length > 0)}
               className={`${
-                nameChanged
+                objChanged && nameValue.length > 0
                   ? "bg-[#001d3dcf] dark:bg-green-800 hover:bg-[#001d3d] dark:hover:bg-green-700 cursor-pointer font-bold"
                   : "bg-[#05470593]"
               }  text-white  py-2 px-4 rounded-full w-full transition-all duration-100 ease-in-out`}
