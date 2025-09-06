@@ -12,7 +12,7 @@ export default async function SupplyLines({
 }) {
   const supabase = await createClient();
 
-  const limit = 2;
+  const limit = 10;
   const awaitedSearchParams = await searchParams;
   const filter = (awaitedSearchParams.filter as string) ?? "";
   const page: number = awaitedSearchParams?.page

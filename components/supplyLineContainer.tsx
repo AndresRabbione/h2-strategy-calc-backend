@@ -45,7 +45,7 @@ export default function SupplyLineContainer({
     });
   };
   return (
-    <div className="flex flex-col ml-3 md:ml-5 justify-center items-center">
+    <div className="flex flex-col ml-0 md:ml-5 justify-center items-center">
       <ToastContainer
         position="bottom-left"
         autoClose={1000}
