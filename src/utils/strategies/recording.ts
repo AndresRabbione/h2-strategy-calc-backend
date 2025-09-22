@@ -16,6 +16,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPlanets } from "../helldiversAPI/planets";
 import { DBLinks, PlanetRouter } from "./routing";
 import { calcPlanetProgressPercentage } from "../helldiversAPI/formulas";
+import { generateStrategies } from "./generator";
 
 export async function recordCurrentState(
   supabase: SupabaseClient<Database>
@@ -66,7 +67,7 @@ export async function recordCurrentState(
   ]);
 
   if (hasNewAssignments) {
-    //await generateStrategies();
+    await generateStrategies();
   }
 
   return true;

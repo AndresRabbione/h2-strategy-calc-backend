@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { recordCurrentState } from "@/utils/strategies/recording";
 
-export async function GET(requuest: Request) {
-  const auth = requuest.headers.get("Authorization");
+export async function GET(request: Request) {
+  const auth = request.headers.get("Authorization");
 
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
