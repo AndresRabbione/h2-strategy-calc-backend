@@ -1,12 +1,22 @@
 import { Planet, PlanetSnapshotFull } from "@/lib/typeDefinitions";
-import { calcPlanetProgressPercentage } from "../helldiversAPI/formulas";
+import {
+  calcPlanetProgressPercentage,
+  calcPlanetRegenPercentage,
+} from "../helldiversAPI/formulas";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "../../../database.types";
 
-export async function calculateHourlyPlayerProcessForAll(
+/**
+ * Utilizes the last hour's snapshots to get the progress for all recorded planets/events
+ * @returns
+ * The returned object has a simple result for a more direct calculation,
+ * the regression figure eliminates outliers to get a true figure without GM
+ * interference
+ */
+export function calculateHourlyPlayerProcessForAll(
   allPlanets: Planet[],
   snapshots: PlanetSnapshotFull[]
-): Promise<{ simple: number; regression: number }[]> {
+): { simple: number; regression: number }[] {
   const allEstimations: { simple: number; regression: number }[] = [];
 
   for (const planet of allPlanets) {
@@ -22,11 +32,13 @@ export async function calculateHourlyPlayerProcessForAll(
       const filteredEventSnasphots = filteredSnasphots?.filter(
         (snapshot) => snapshot.eventId === eventId
       );
-      const estimation = estimateHourlyRate(filteredEventSnasphots ?? []);
+      const estimation = estimateHourlyRateForPlanet(
+        filteredEventSnasphots ?? []
+      );
 
       allEstimations.push(estimation);
     } else {
-      const estimation = estimateHourlyRate(filteredSnasphots ?? []);
+      const estimation = estimateHourlyRateForPlanet(filteredSnasphots ?? []);
       allEstimations.push(estimation);
     }
   }
@@ -45,10 +57,13 @@ export async function getLatestPlanetSnapshots(
   return snapshots ?? [];
 }
 
-export async function estimatePlayerImpactPercentage(
+/**
+ *  Estimates how much each player currently contributes per hour
+ */
+export function estimatePlayerImpactPerHour(
   allPlanets: Planet[],
   snapshots: PlanetSnapshotFull[]
-): Promise<number> {
+): number {
   const boosetedProgressLimit = 8;
 
   const sortedPlanets = allPlanets.filter((planet) => !planet.event);
@@ -60,7 +75,7 @@ export async function estimatePlayerImpactPercentage(
   let filteredSnasphots = snapshots.filter(
     (snapshot) => snapshot.planetId === sortedPlanets[i].index
   );
-  let progress = estimateHourlyRate(filteredSnasphots);
+  let progress = estimateHourlyRateForPlanet(filteredSnasphots);
 
   while (
     progress.regression >= boosetedProgressLimit &&
@@ -71,28 +86,38 @@ export async function estimatePlayerImpactPercentage(
     filteredSnasphots = snapshots.filter(
       (snapshot) => snapshot.planetId === sortedPlanets[i].index
     );
-    progress = estimateHourlyRate(filteredSnasphots);
+    progress = estimateHourlyRateForPlanet(filteredSnasphots);
   }
 
-  return progress.regression / sortedPlanets[i].statistics.playerCount;
+  const healthPerHourTotal = sortedPlanets[i].maxHealth / progress.regression;
+
+  return healthPerHourTotal / sortedPlanets[i].statistics.playerCount;
 }
 
-export function estimateHourlyRate(
-  snapshots: {
-    id: number;
-    createdAt: string;
-    health: number;
-    maxHealth: number;
-    planetId: number;
-    eventId: number | null;
-  }[]
-): { simple: number; regression: number } {
+/**
+ * Estimates the Hourly progress for a specific planet/event
+ * @param snapshots
+ * These must belong to a specific planet/event
+ * @returns
+ * The returned object has a simple result for a more direct calculation,
+ * the regression figure eliminates outliers to get a true figure without GM
+ * interference
+ */
+export function estimateHourlyRateForPlanet(snapshots: PlanetSnapshotFull[]): {
+  simple: number;
+  regression: number;
+} {
   if (snapshots.length < 2) return { simple: 0, regression: 0 };
+
+  const regenPerHour = calcPlanetRegenPercentage(
+    snapshots[snapshots.length - 1].regenPerSecond,
+    snapshots[snapshots.length - 1].maxHealth
+  );
 
   // normalize health %
   const points = snapshots.map((s) => ({
     t: new Date(s.createdAt).getTime() / 1000 / 60, // minutes since epoch
-    p: calcPlanetProgressPercentage(s.health, s.maxHealth),
+    p: calcPlanetProgressPercentage(s.health, s.maxHealth, null),
   }));
 
   const t0 = points[0].t;
@@ -115,5 +140,25 @@ export function estimateHourlyRate(
   const slopePerMinute = num / den; // % per minute
   const rateRegression = slopePerMinute * 60; // % per hour
 
-  return { simple: rateSimple * -1, regression: rateRegression * -1 };
+  return {
+    simple: rateSimple * -1 + regenPerHour,
+    regression: rateRegression * -1 + regenPerHour,
+  };
+}
+
+/**
+ * Estimates the maximum achievable hourly progress by taking the per
+ * player progress and multiplying it by the total player count
+ */
+export function estimateMaximumPlayerImpactPerHour(
+  allPlanets: Planet[],
+  snapshots: PlanetSnapshotFull[],
+  totalPlayerCount: number
+): number {
+  const estimatedPercentage = estimatePlayerImpactPerHour(
+    allPlanets,
+    snapshots
+  );
+
+  return estimatedPercentage * totalPlayerCount;
 }

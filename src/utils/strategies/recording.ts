@@ -13,46 +13,63 @@ import {
 import { Objective } from "../objectives/classes";
 import { MOParser } from "./parsing";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { createClient } from "../supabase/server";
 import { fetchAllPlanets } from "../helldiversAPI/planets";
 import { DBLinks, PlanetRouter } from "./routing";
-import { generateStrategies } from "./generator";
 import { calcPlanetProgressPercentage } from "../helldiversAPI/formulas";
 
-export async function recordCurrentState() {
+export async function recordCurrentState(
+  supabase: SupabaseClient<Database>
+): Promise<boolean> {
   const router = new PlanetRouter();
-  const [supabase, assignments, planets, adjacency] = await Promise.all([
-    createClient(),
-    getAllAssignments(),
-    fetchAllPlanets(),
-    router.buildAdjacencyMap(),
-  ]);
+  const now = new Date().toISOString();
+
+  const [assignments, planets, adjacency, { data: parsedAssingnments }] =
+    await Promise.all([
+      getAllAssignments(),
+      fetchAllPlanets(),
+      router.buildAdjacencyMap(),
+      supabase.from("assignment").select("*, objective(*)").gte("endDate", now),
+    ]);
+
+  if (!assignments || planets.length === 0 || !parsedAssingnments) {
+    return false;
+  }
+
+  const totalPlayerCount = planets.reduce((accumulator, planet) => {
+    return accumulator + planet.statistics.playerCount;
+  }, 0);
+
   let hasNewAssignments = false;
   for (const assignment of assignments!) {
-    const { data: parsedAssingnment } = await supabase
-      .from("assignment")
-      .select("*, objective(*)")
-      .eq("id", assignment.id32);
+    const parsedAssingnment = parsedAssingnments?.find(
+      (element) => element.id === assignment.id32
+    );
 
-    if (!parsedAssingnment || parsedAssingnment.length === 0) {
+    if (!parsedAssingnment) {
       await parseAssignmentAndRecord(supabase, assignment, planets);
       hasNewAssignments = true;
     } else {
-      const fullParsedAssignment = parsedAssingnment[0];
       await updateObjectives(
         supabase,
         assignments ?? [],
-        fullParsedAssignment,
+        parsedAssingnment,
         planets
       );
     }
-
-    await takePlanetSnapshots(supabase, planets, adjacency);
   }
+
+  await Promise.all([
+    takePlanetSnapshots(supabase, planets, adjacency),
+    supabase
+      .from("player_count_record")
+      .insert({ player_count: totalPlayerCount, created_at: now }),
+  ]);
 
   if (hasNewAssignments) {
     //await generateStrategies();
   }
+
+  return true;
 }
 
 export async function updateObjectives(
@@ -77,12 +94,11 @@ export async function updateObjectives(
           if (!planet.event && planet.currentOwner === Factions.HUMANS) {
             progress = 100;
           } else {
-            progress = planet.event
-              ? calcPlanetProgressPercentage(
-                  planet.event.health,
-                  planet.event.maxHealth
-                )
-              : calcPlanetProgressPercentage(planet.health, planet.maxHealth);
+            progress = calcPlanetProgressPercentage(
+              planet.health,
+              planet.maxHealth,
+              planet.event
+            );
           }
         }
 
@@ -181,6 +197,7 @@ export async function parseAssignmentAndRecord(
       title: assignment.setting.overrideTitle,
       brief: assignment.setting.overrideBrief,
       type: assignment.setting.type,
+      is_decision: assignment.setting.flags === 2,
     })
     .select();
 
@@ -192,6 +209,7 @@ export async function parseAssignmentAndRecord(
       title: assignment.setting.overrideTitle,
       brief: assignment.setting.overrideBrief,
       type: assignment.setting.type,
+      is_decision: assignment.setting.flags === 2,
     });
     newAssignment = data;
   }
@@ -250,6 +268,7 @@ export async function takePlanetSnapshots(
           health: planet.event.health,
           planetId: planet.index,
           maxHealth: planet.event.maxHealth,
+          regenPerSecond: 0,
         });
       } else {
         rowsToInsert.push({
@@ -258,6 +277,7 @@ export async function takePlanetSnapshots(
           planetId: planet.index,
           maxHealth: planet.maxHealth,
           eventId: null,
+          regenPerSecond: planet.regenPerSecond,
         });
       }
     }
