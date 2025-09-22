@@ -28,7 +28,7 @@ export async function recordCurrentState(
     await Promise.all([
       getAllAssignments(),
       fetchAllPlanets(),
-      router.buildAdjacencyMap(),
+      router.buildAdjacencyMap(supabase),
       supabase.from("assignment").select("*, objective(*)").gte("endDate", now),
     ]);
 

@@ -80,7 +80,7 @@ export async function generateStrategies(): Promise<void> {
   ] = await Promise.all([
     fetchAllPlanets(),
     getLatestPlanetSnapshots(supabase),
-    planetRouter.buildAdjacencyMap(),
+    planetRouter.buildAdjacencyMap(supabase),
     supabase
       .from("strategy")
       .select("*, strategyStep(*), dssStep(*)")

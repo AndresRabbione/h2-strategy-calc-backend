@@ -1,5 +1,6 @@
 import { Factions, Planet } from "@/lib/typeDefinitions";
-import { createClient } from "../supabase/server";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { Database } from "../../../database.types";
 
 export type DBLinks = {
   bidirectional: boolean | null;
@@ -35,8 +36,9 @@ export class PlanetRouter {
    * The format is a Map with each planet ID as a key and all of its connections in the
    * supplyLineView format from the DB
    */
-  public async buildAdjacencyMap(): Promise<Map<number, DBLinks>> {
-    const supabase = await createClient();
+  public async buildAdjacencyMap(
+    supabase: SupabaseClient<Database>
+  ): Promise<Map<number, DBLinks>> {
     const { data: links } = await supabase.from("supplyLineFull").select("*");
 
     const adjacency = new Map<number, DBLinks>();
