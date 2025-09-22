@@ -1,3 +1,9 @@
-export default function Home() {
-  return <div>Home</div>;
+import MajorOrderDashboard from "../../components/majorOrderDashboard";
+
+export default async function HomepageDashboard() {
+  return (
+    <div className="m-5">
+      <MajorOrderDashboard></MajorOrderDashboard>
+    </div>
+  );
 }

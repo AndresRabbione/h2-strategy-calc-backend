@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import "@/styles/sidebar.css";
 import { Flip, toast, ToastContainer } from "react-toastify";
 import { sidebarToastConfig } from "@/lib/constants";
+import { PostgrestError } from "@supabase/supabase-js";
 
 export default function SupplyLineSidebar({
   linkId,
@@ -41,6 +42,14 @@ export default function SupplyLineSidebar({
     const found = planets.find((planet) => planet.id === id);
 
     return found?.disabled ?? false;
+  }
+
+  function getParsedErrorMessage(error: PostgrestError): string {
+    if (error.message.includes("unique_supply_line_planet_pair_reverse")) {
+      return "This supply line already exists";
+    }
+
+    return `${error.code}: ${error.message}`;
   }
 
   useEffect(() => {
@@ -90,12 +99,7 @@ export default function SupplyLineSidebar({
       setOriginChanged(false);
 
       if (linkError) {
-        toast.error(
-          linkError.code
-            ? `${linkError.code}: ${linkError.message}`
-            : "Something went wrong",
-          sidebarToastConfig
-        );
+        toast.error(getParsedErrorMessage(linkError), sidebarToastConfig);
       }
 
       if (planetError) {
@@ -131,12 +135,7 @@ export default function SupplyLineSidebar({
       setDestinationChanged(false);
 
       if (linkError) {
-        toast.error(
-          linkError.code
-            ? `${linkError.code}: ${linkError.message}`
-            : "Something went wrong",
-          sidebarToastConfig
-        );
+        toast.error(getParsedErrorMessage(linkError), sidebarToastConfig);
       }
 
       if (planetError) {
@@ -165,12 +164,7 @@ export default function SupplyLineSidebar({
       setDirectionChanged(false);
 
       if (linkError) {
-        toast.error(
-          linkError.code
-            ? `${linkError.code}: ${linkError.message}`
-            : "Something went wrong",
-          sidebarToastConfig
-        );
+        toast.error(getParsedErrorMessage(linkError), sidebarToastConfig);
       }
 
       if (linkData) {
@@ -206,10 +200,7 @@ export default function SupplyLineSidebar({
     setSavePending(false);
 
     if (error) {
-      toast.error(
-        error.code ? `${error.code}: ${error.message}` : "Something went wrong",
-        sidebarToastConfig
-      );
+      toast.error(getParsedErrorMessage(error), sidebarToastConfig);
     } else if (data) {
       toast.success("Link created", sidebarToastConfig);
       setLink(data[0].id);
@@ -231,12 +222,7 @@ export default function SupplyLineSidebar({
     setDeletePending(false);
 
     if (error) {
-      toast.error(
-        error.code
-          ? `${error.code}: ${error.message}`
-          : "Link couldn't be deleted",
-        sidebarToastConfig
-      );
+      toast.error(getParsedErrorMessage(error), sidebarToastConfig);
     } else {
       onDelete();
       handleClose();

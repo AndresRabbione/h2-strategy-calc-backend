@@ -1,18 +1,32 @@
+"use server";
+
+import SupplyLineContainer from "../../../components/supplyLineContainer";
 import { createClient } from "@/utils/supabase/server";
 import Pagination from "../../../components/pagination";
-import { PageProps } from "../../../.next/types/app/supplyLines/page";
 import SearchBar from "../../../components/searchBar";
-import SupplyLineContainer from "../../../components/supplyLineContainer";
 
-export default async function SupplyLines({ searchParams }: PageProps) {
+export default async function SupplyLines({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const supabase = await createClient();
 
   const limit = 10;
   const awaitedSearchParams = await searchParams;
-  const filter: string = awaitedSearchParams.filter ?? "";
+  const filter = (awaitedSearchParams.filter as string) ?? "";
   const page: number = awaitedSearchParams?.page
     ? Number(awaitedSearchParams.page)
     : 0;
+  const currentVerifiedParams = new URLSearchParams();
+
+  Object.entries(awaitedSearchParams).forEach(([key, value]) => {
+    if (value !== undefined) {
+      currentVerifiedParams.set(key, String(value));
+    }
+  });
+  currentVerifiedParams.set("filter", filter);
+  currentVerifiedParams.set("page", page.toString());
 
   const { count, data: links } = await supabase
     .from("supplyLineFull")
@@ -29,7 +43,7 @@ export default async function SupplyLines({ searchParams }: PageProps) {
         <div className="bg-gray-700 flex flex-col">
           <div className="flex flex-col md:flex-row md:justify-between w-full">
             <Pagination
-              currentPage={page}
+              searchParamsString={currentVerifiedParams.toString()}
               hasNext={
                 links !== null &&
                 links.length !== 0 &&
@@ -37,9 +51,12 @@ export default async function SupplyLines({ searchParams }: PageProps) {
                 count > limit * page + links.length
               }
             />
-            <SearchBar disabled={false}></SearchBar>
+            <SearchBar
+              disabled={false}
+              searchParamsString={currentVerifiedParams.toString()}
+            ></SearchBar>
           </div>
-          <SupplyLineContainer links={links}></SupplyLineContainer>
+          <SupplyLineContainer links={links ?? []}></SupplyLineContainer>
         </div>
       </section>
     </div>

@@ -1,23 +1,29 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function SearchBar({ disabled }: { disabled: boolean }) {
+export default function SearchBar({
+  disabled,
+  searchParamsString,
+}: {
+  disabled: boolean;
+  searchParamsString: string;
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = new URLSearchParams(searchParamsString);
 
-  const currentFilter = searchParams.get("filter") || "";
+  const filter = searchParams.get("filter") as string;
 
-  const [searchString, setSearchString] = useState(currentFilter);
+  const [searchString, setSearchString] = useState(filter);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       if (searchString.length > 2 || searchString.length === 0) {
-        const params = new URLSearchParams(searchParams);
-        params.set("filter", searchString);
-        params.set("page", "0");
-        router.push(`?${params.toString()}`);
+        const newParams = new URLSearchParams(searchParams.toString());
+        newParams.set("filter", searchString);
+        newParams.set("page", "0");
+        router.push(`?${newParams.toString()}`);
       }
     }, 300);
 
@@ -37,7 +43,7 @@ export default function SearchBar({ disabled }: { disabled: boolean }) {
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
       ></link>
       <div className="flex flex-col sm:flex-row sm:items-center gap-1 md:gap-3">
-        <label className="text-white text-lg font-semibold">Filter:</label>
+        <label className="text-white text-lg font-semibold">Search:</label>
         <div className="relative w-full sm:w-auto">
           <input
             disabled={disabled}

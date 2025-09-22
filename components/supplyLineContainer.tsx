@@ -45,7 +45,7 @@ export default function SupplyLineContainer({
     });
   };
   return (
-    <div className="flex flex-col ml-3 md:ml-5">
+    <div className="flex flex-col ml-0 md:ml-5 justify-center items-center">
       <ToastContainer
         position="bottom-left"
         autoClose={1000}
@@ -65,7 +65,7 @@ export default function SupplyLineContainer({
         disabled={isRefreshing}
       ></CreateSupplyLineBtn>
       {links && links.length > 0 ? (
-        <div className="grid grid-cols-1 p-3 pl-0 md:p-5 md:pl-0 items-center">
+        <div className="grid grid-cols-1 p-3 md:p-0 md:py-5 items-center justify-center">
           {links.map((link) => (
             <SupplyLineView
               key={link.supply_line_id}

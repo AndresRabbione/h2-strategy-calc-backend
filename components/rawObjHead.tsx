@@ -8,9 +8,11 @@ import { createClient } from "@/utils/supabase/client";
 export default function RawObjHeader({
   objective,
   parsedObjective,
+  difficulties,
 }: {
   objective: Task;
   parsedObjective: { id: number; name: string }[] | null;
+  difficulties: { id: number; name: string }[];
 }) {
   const [isSidebarOpen, setOpen] = useState(false);
   const [submitted, setSubmit] = useState(false);
@@ -31,6 +33,7 @@ export default function RawObjHeader({
       setSubmit(false);
     }
   }, [submitted]);
+
   return (
     <div className="flex flex-row gap-3">
       <span>Type:</span>
@@ -51,6 +54,7 @@ export default function RawObjHeader({
           tableName="objectiveType"
           onClose={() => setOpen(false)}
           onSave={() => setSubmit(true)}
+          difficulties={difficulties}
         ></MOValSidebar>
       ) : null}
     </div>
