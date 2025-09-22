@@ -1,3 +1,4 @@
+import { helldiversAPIHeaders } from "@/lib/constants";
 import { Assignment } from "@/lib/typeDefinitions";
 
 const api =
@@ -10,11 +11,7 @@ export async function getCurrentMajorOrders(
     try {
       const request = await fetch(`${api}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Super-Client": "helldivers.strategy.calc",
-          "X-Super-Contact": "example@email.com",
-        },
+        headers: helldiversAPIHeaders,
       });
 
       if (request.status === 429) {
@@ -53,11 +50,7 @@ export async function getStrategicOpportunities(
     try {
       const request = await fetch(`${api}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Super-Client": "helldivers.strategy.calc",
-          "X-Super-Contact": "example@email.com",
-        },
+        headers: helldiversAPIHeaders,
       });
 
       if (request.status === 429) {
@@ -92,11 +85,7 @@ export async function getAllAssignments(
     try {
       const request = await fetch(`${api}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Super-Client": "helldivers.strategy.calc",
-          "X-Super-Contact": "example@email.com",
-        },
+        headers: helldiversAPIHeaders,
       });
 
       if (request.status === 429) {

@@ -1,6 +1,8 @@
 import { Attack, Factions, Planet } from "@/lib/typeDefinitions";
 import { createClient } from "../supabase/server";
 import { fetchAllPlanets } from "./planets";
+import { DBLinks } from "../strategies/routing";
+import { helldiversAPIHeaders } from "@/lib/constants";
 
 const api = process.env.NEXT_PUBLIC_HELLDIVERS_API_URL;
 
@@ -18,11 +20,7 @@ export async function fetchAllAttacks(retries: number = 3): Promise<Attack[]> {
       const supabase = await createClient();
       const request = await fetch(`${api}/api/v1/planet-events`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Super-Client": "helldivers.strategy.calc",
-          "X-Super-Contact": "example@email.com",
-        },
+        headers: helldiversAPIHeaders,
       });
 
       if (request.status === 429) {
@@ -142,4 +140,32 @@ export async function findGambitForPlanet(planetId: number): Promise<Attack> {
     console.error(e);
     return { source: allPlanets[planetId], targets: [] };
   }
+}
+
+export function getAttackersForPlanet(
+  planet: Planet,
+  supplyLines: Map<number, DBLinks>,
+  allPlanets: Planet[]
+): Planet[] {
+  const attackers: Planet[] = [];
+
+  const linkedPlanets = supplyLines.get(planet.index);
+  if (!linkedPlanets) return attackers;
+
+  for (const linkedPlanet of linkedPlanets) {
+    const otherPlanetId =
+      planet.index === linkedPlanet.planetId
+        ? linkedPlanet.linkedPlanetId!
+        : linkedPlanet.planetId!;
+
+    const otherPlanet = allPlanets[otherPlanetId];
+    if (
+      otherPlanet.currentOwner !== Factions.HUMANS &&
+      otherPlanet.attacking.includes(planet.index)
+    ) {
+      attackers.push(otherPlanet);
+    }
+  }
+
+  return attackers;
 }

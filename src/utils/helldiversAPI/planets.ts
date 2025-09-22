@@ -1,3 +1,4 @@
+import { helldiversAPIHeaders } from "@/lib/constants";
 import { Planet } from "@/lib/typeDefinitions";
 
 const api = process.env.NEXT_PUBLIC_HELLDIVERS_API_URL + "/api/v1/planets";
@@ -10,11 +11,7 @@ export async function findPlanetById(
     try {
       const request = await fetch(`${api}/${id}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Super-Client": "helldivers.strategy.calc",
-          "X-Super-Contact": "example@email.com",
-        },
+        headers: helldiversAPIHeaders,
       });
 
       if (request.status === 429) {
@@ -43,11 +40,7 @@ export async function fetchAllPlanets(retries: number = 3): Promise<Planet[]> {
     try {
       const request = await fetch(`${api}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Super-Client": "helldivers.strategy.calc",
-          "X-Super-Contact": "example@email.com",
-        },
+        headers: helldiversAPIHeaders,
       });
 
       if (request.status === 429) {
