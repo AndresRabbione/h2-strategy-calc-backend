@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  update-data:
+  build-and-run:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,11 +20,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run update script with retries
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Run automation script
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          npx ts-node -r tsconfig-paths/register scripts/recordState.ts \
-          || (echo "Retry 1 after 30s..." && sleep 30 && npx ts-node -r tsconfig-paths/register scripts/recordState.ts) \
-          || (echo "Retry 2 after 30s..." && sleep 30 && npx ts-node -r tsconfig-paths/register scripts/recordState.ts)
+        run: npx tsx src/scripts/recordState.ts
