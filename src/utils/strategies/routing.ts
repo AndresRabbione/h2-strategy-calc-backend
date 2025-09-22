@@ -1,6 +1,5 @@
 import { Factions, Planet } from "@/lib/typeDefinitions";
 import { createClient } from "../supabase/server";
-import { fetchAllPlanets } from "../helldiversAPI/planets";
 
 export type DBLinks = {
   bidirectional: boolean | null;
@@ -14,14 +13,28 @@ export type DBLinks = {
 }[];
 
 export class PlanetRouter {
-  private calcRouteResistance(planets: Planet[]): number {
-    return planets.reduce(
+  /**
+   * A private helper function for calculating the resistance of a route
+   * @param route
+   * The route to get the resistance for
+   * @returns
+   * The sum of the regen per second of the route's planets
+   */
+  public calcRouteResistance(route: Planet[]): number {
+    return route.reduce(
       (accumulator, currentPlanet) =>
         accumulator + currentPlanet.regenPerSecond,
       0
     );
   }
 
+  /**
+   * Creates a map for fast lookup of supply lines, used for gambits
+   * and routing
+   * @returns
+   * The format is a Map with each planet ID as a key and all of its connections in the
+   * supplyLineView format from the DB
+   */
   public async buildAdjacencyMap(): Promise<Map<number, DBLinks>> {
     const supabase = await createClient();
     const { data: links } = await supabase.from("supplyLineFull").select("*");
@@ -45,13 +58,25 @@ export class PlanetRouter {
     return adjacency;
   }
 
+  /**
+   * A depth-first approach to finding all routes to a planet, recursion depth
+   * is capped at 8
+   * @param startingPlanet
+   * The current planet in the route
+   * @param adjacency
+   * The Map used for fast lookup of connections and planet status
+   * @param visited
+   * A set of already visited planets for this route
+   * @returns
+   * Each route starts with the target planet and ends with the friendly planet
+   */
   private getAllRoutesDFS(
     startingPlanet: Planet,
     adjacency: Map<number, DBLinks>,
     allPlanets: Planet[],
     visited: Set<number> = new Set(),
     currentRoute: Planet[] = [],
-    maxDepth = 5
+    maxDepth: number = 8
   ): Planet[][] {
     const links = adjacency.get(startingPlanet.index) ?? [];
 
@@ -101,11 +126,20 @@ export class PlanetRouter {
     return allRoutes;
   }
 
-  public async findShortestRoute(planet: Planet): Promise<Planet[]> {
-    const [adjacency, allPlanets] = await Promise.all([
-      this.buildAdjacencyMap(),
-      fetchAllPlanets(),
-    ]);
+  /**
+   * The exposed API for finding a shortest route, makes use of other private funcitons
+   * @returns
+   * The route starts with the target planet and ends with the friendly planet
+   */
+  //TODO: Needs to find other target collisions which is considerably more difficult
+  public findShortestRoute(
+    planet: Planet,
+    allPlanets: Planet[],
+    adjacency: Map<number, DBLinks>
+  ): Planet[] {
+    if (planet.currentOwner === Factions.HUMANS) {
+      return [];
+    }
 
     const links = adjacency.get(planet.index) ?? [];
 

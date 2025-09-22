@@ -173,14 +173,12 @@ export interface Attack {
 }
 
 export enum ObjectiveTypes {
-  //TODO: FIND THE IDS
   HOLD = 13,
   LIBERATE = 11, //Not sure about this one
   OPERATIONS = 9,
   KILL = 3,
   COLLECT = 2,
-  DEFEND_AMOUNT,
-  LIBERATE_MORE,
+  LIBERATE_MORE = -1,
   DEFEND = 12, //Not sure about this one
 }
 
@@ -231,16 +229,40 @@ export type DSSStep = {
   actionToActivate: TacticalAction | null;
 };
 
-export type StrategyStep = {
-  id: number;
-  objectiveId: number;
+export type StrategyStepInsert = {
   planetId: number;
   playerPercentage: number;
   strategyId: number;
-  createdAt: string;
-  originalTimestamp: string;
-  branch: number;
+  created_at: string;
   progress: number;
+  limit_date: string;
+};
+
+export type StrategyStepFull = {
+  id: number;
+  planetId: number;
+  playerPercentage: number;
+  strategyId: number;
+  created_at: string;
+  progress: number;
+  limit_date: string;
+};
+
+export type RegionSplitInsert = {
+  region_id: number | null;
+  step_id: number;
+  percentage: number;
+  planet_id: number;
+  created_at: string;
+};
+
+export type RegionSplitFull = {
+  id: number;
+  region_id: number | null;
+  step_id: number;
+  percentage: number;
+  planet_id: number;
+  created_at: string;
 };
 
 export type Sector = {
@@ -296,6 +318,7 @@ export type PlanetSnapshotInsert = {
   maxHealth: number;
   health: number;
   createdAt: string;
+  regenPerSecond: number;
 };
 
 export type PlanetSnapshotFull = {
@@ -305,5 +328,7 @@ export type PlanetSnapshotFull = {
   maxHealth: number;
   health: number;
   createdAt: string;
+  regenPerSecond: number;
 };
+
 export type TableNames = keyof Database["public"]["Tables"];

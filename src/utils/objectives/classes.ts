@@ -88,12 +88,11 @@ export class PlanetObjective extends Objective {
     if (this.target.currentOwner === Factions.HUMANS && !this.target.event) {
       return 100;
     }
-    return this.target.event
-      ? calcPlanetProgressPercentage(
-          this.target.event.health,
-          this.target.event.maxHealth
-        )
-      : calcPlanetProgressPercentage(this.target.health, this.target.maxHealth);
+    return calcPlanetProgressPercentage(
+      this.target.health,
+      this.target.maxHealth,
+      this.target.event
+    );
   }
 
   public hasSpecificPlanet(): boolean {
@@ -241,7 +240,7 @@ export class DefendAmountObjective extends Objective {
     progress: number,
     id: number
   ) {
-    super(complete, ObjectiveTypes.DEFEND_AMOUNT, id);
+    super(complete, ObjectiveTypes.DEFEND, id);
     this.faction = faction;
     this.totalAmount = total;
     this.progress = progress;

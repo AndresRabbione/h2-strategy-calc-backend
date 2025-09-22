@@ -13,3 +13,9 @@ export const sidebarToastConfig = {
   theme: "dark",
   transition: Flip,
 } as ToastOptions;
+
+export const helldiversAPIHeaders = {
+  "Content-Type": "application/json",
+  "X-Super-Client": "helldivers.strategy.calc",
+  "X-Super-Contact": "h2strategycalc@gmail.com",
+};

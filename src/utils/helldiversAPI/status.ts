@@ -1,3 +1,5 @@
+import { helldiversAPIHeaders } from "@/lib/constants";
+
 const api =
   process.env.NEXT_PUBLIC_HELLDIVERS_API_URL + "/raw/api/WarSeason/801/Status";
 
@@ -50,11 +52,7 @@ export async function getCurrentImpactMultiplier(): Promise<number> {
   try {
     const request = await fetch(`${api}`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Super-Client": "helldivers.strategy.calc",
-        "X-Super-Contact": "example@email.com",
-      },
+      headers: helldiversAPIHeaders,
     });
 
     if (request.status === 503) {

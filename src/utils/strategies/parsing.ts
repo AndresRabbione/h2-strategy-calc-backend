@@ -173,7 +173,6 @@ export class MOParser {
           item = objective.values[i];
           break;
         case ValueTypes.TARGET_ID:
-          console.log("HERE");
           let auxValue = 0;
           for (
             let currType = 0;
@@ -183,10 +182,8 @@ export class MOParser {
             if (objective.valueTypes[currType] === ValueTypes.TARGET_TYPE)
               auxValue = objective.values[currType];
           }
-          console.log(auxValue);
           planet = auxValue === 1 ? allPlanets[objective.values[i]] : null;
           sector = auxValue === 2 ? objective.values[i] : null;
-          console.log(planet);
           break;
       }
     }
@@ -256,9 +253,6 @@ export class MOParser {
       case ObjectiveTypes.COLLECT:
         return this.parseCollectionObj(objective, progress, allPlanets);
         break;
-      case ObjectiveTypes.DEFEND_AMOUNT:
-        return this.parsedDefendAmountObj(objective, progress);
-        break;
       case ObjectiveTypes.KILL:
         return this.parseKillObj(objective, progress, allPlanets);
         break;
@@ -266,6 +260,9 @@ export class MOParser {
         return this.parsePlanetObj(objective, progress, allPlanets);
         break;
       case ObjectiveTypes.DEFEND:
+        if (this.isDefendAmount(objective)) {
+          return this.parsedDefendAmountObj(objective, progress);
+        }
         return this.parsePlanetObj(objective, progress, allPlanets);
         break;
       case ObjectiveTypes.LIBERATE_MORE:
@@ -278,5 +275,18 @@ export class MOParser {
 
   public isValidAssignment(assignment: Assignment): boolean {
     return assignment.id32 !== -1;
+  }
+
+  public isDefendAmount(objective: Task): boolean {
+    let targetAuxValue = 0;
+
+    for (let i = 0; i < objective.values.length; i++) {
+      if (objective.valueTypes[i] === ValueTypes.TARGET_TYPE) {
+        targetAuxValue = objective.values[i];
+        break;
+      }
+    }
+
+    return objective.type === ObjectiveTypes.DEFEND && targetAuxValue === 0;
   }
 }

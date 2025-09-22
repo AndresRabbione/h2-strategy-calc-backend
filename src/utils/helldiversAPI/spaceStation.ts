@@ -1,3 +1,4 @@
+import { helldiversAPIHeaders } from "@/lib/constants";
 import { SpaceStationV2 } from "@/lib/typeDefinitions";
 
 const api =
@@ -11,11 +12,7 @@ export async function getDSS(
     try {
       const request = await fetch(`${api}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Super-Client": "helldivers.strategy.calc",
-          "X-Super-Contact": "example@email.com",
-        },
+        headers: helldiversAPIHeaders,
       });
 
       if (request.status === 429) {
