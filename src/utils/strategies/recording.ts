@@ -67,7 +67,7 @@ export async function recordCurrentState(
   ]);
 
   if (hasNewAssignments) {
-    await generateStrategies();
+    await generateStrategies(supabase);
   }
 
   return true;
