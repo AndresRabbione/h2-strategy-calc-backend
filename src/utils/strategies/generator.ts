@@ -7,7 +7,6 @@ import {
   StrategyStepInsert,
 } from "@/lib/typeDefinitions";
 import { fetchAllPlanets } from "../helldiversAPI/planets";
-import { createClient } from "../supabase/server";
 import { PlanetRouter } from "./routing";
 import {
   estimatePlayerImpactPerHour,
@@ -25,16 +24,19 @@ import {
   calcPlanetProgressPercentage,
 } from "../helldiversAPI/formulas";
 import { calcMinOffense } from "../parsing/winning";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { Database } from "../../../database.types";
 
 type Allocation = {
   planet: number;
   regions: number[];
 };
 
-export async function generateStrategies(): Promise<void> {
+export async function generateStrategies(
+  supabase: SupabaseClient<Database>
+): Promise<boolean> {
   const maxRetries = 3;
   const now = new Date().toISOString();
-  const supabase = await createClient();
   const currentAssignments = await getAllAssignments();
 
   let { data: assignments } = await supabase
@@ -50,13 +52,17 @@ export async function generateStrategies(): Promise<void> {
     assignments = data;
   }
 
+  if (!currentAssignments) {
+    return false;
+  }
+
   if (currentAssignments && currentAssignments.length > 0) {
     const activeIds = currentAssignments.map((assignment) => assignment.id32);
     assignments =
       assignments?.filter((assignment) => activeIds.includes(assignment.id)) ??
       [];
   } else {
-    return;
+    return true;
   }
 
   if (
@@ -64,7 +70,7 @@ export async function generateStrategies(): Promise<void> {
     assignments.length === 0 ||
     !canGenerateStrategies(assignments)
   ) {
-    return;
+    return true;
   }
 
   const planetRouter = new PlanetRouter();
@@ -170,6 +176,8 @@ export async function generateStrategies(): Promise<void> {
   );
 
   await supabase.from("planet_region_split").insert(regionSplits);
+
+  return true;
 }
 
 /**
