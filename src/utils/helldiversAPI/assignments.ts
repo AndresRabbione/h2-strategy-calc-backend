@@ -14,6 +14,11 @@ export async function getCurrentMajorOrders(
         headers: helldiversAPIHeaders,
       });
 
+      if (request.status === 503) {
+        console.warn(`Service unavailable ${request.status}.`);
+        return null;
+      }
+
       if (request.status === 429) {
         const retryAfter = request.headers.get("retry-after");
         const delay = retryAfter ? parseInt(retryAfter) * 1000 : 10000;
@@ -53,6 +58,11 @@ export async function getStrategicOpportunities(
         headers: helldiversAPIHeaders,
       });
 
+      if (request.status === 503) {
+        console.warn(`Service unavailable ${request.status}.`);
+        return null;
+      }
+
       if (request.status === 429) {
         const retryAfter = request.headers.get("retry-after");
         const delay = retryAfter ? parseInt(retryAfter) * 1000 : 10000;
@@ -87,6 +97,11 @@ export async function getAllAssignments(
         method: "GET",
         headers: helldiversAPIHeaders,
       });
+
+      if (request.status === 503) {
+        console.warn(`Service unavailable ${request.status}.`);
+        return null;
+      }
 
       if (request.status === 429) {
         const retryAfter = request.headers.get("retry-after");

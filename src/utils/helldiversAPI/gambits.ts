@@ -23,6 +23,11 @@ export async function fetchAllAttacks(retries: number = 3): Promise<Attack[]> {
         headers: helldiversAPIHeaders,
       });
 
+      if (request.status === 503) {
+        console.warn(`Service unavailable ${request.status}.`);
+        return [];
+      }
+
       if (request.status === 429) {
         const retryAfter = request.headers.get("retry-after");
         const delay = retryAfter ? parseInt(retryAfter) * 1000 : 10000;

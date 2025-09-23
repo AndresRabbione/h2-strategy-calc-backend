@@ -14,6 +14,11 @@ export async function findPlanetById(
         headers: helldiversAPIHeaders,
       });
 
+      if (request.status === 503) {
+        console.warn(`Service unavailable ${request.status}.`);
+        return null;
+      }
+
       if (request.status === 429) {
         const retryAfter = request.headers.get("retry-after");
         const delay = retryAfter ? parseInt(retryAfter) * 1000 + 1000 : 11000;
@@ -43,8 +48,13 @@ export async function fetchAllPlanets(retries: number = 3): Promise<Planet[]> {
         headers: helldiversAPIHeaders,
       });
 
+      if (request.status === 503) {
+        console.warn(`Service unavailable ${request.status}.`);
+        return [];
+      }
+
       if (request.status === 429) {
-        const retryAfter = request.headers.get("retry-after");
+        const retryAfter = request.headers.get("retry-after") ?? "10";
         const delay = retryAfter ? parseInt(retryAfter) * 1000 + 1000 : 11000;
         console.warn(`Rate limited. Retrying in ${delay / 1000}s...`);
         await new Promise((resolve) => setTimeout(resolve, delay));

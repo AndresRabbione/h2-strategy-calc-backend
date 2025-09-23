@@ -24,6 +24,8 @@ export async function recordCurrentState(
   const router = new PlanetRouter();
   const now = new Date().toISOString();
 
+  console.time("Fetching");
+
   const [assignments, planets, adjacency, { data: parsedAssingnments }] =
     await Promise.all([
       getAllAssignments(),
@@ -31,6 +33,8 @@ export async function recordCurrentState(
       router.buildAdjacencyMap(supabase),
       supabase.from("assignment").select("*, objective(*)").gte("endDate", now),
     ]);
+
+  console.timeEnd("Fetching");
 
   if (!assignments || planets.length === 0 || !parsedAssingnments) {
     return false;
@@ -40,6 +44,7 @@ export async function recordCurrentState(
     return accumulator + planet.statistics.playerCount;
   }, 0);
 
+  console.time("Recording assignments");
   let hasNewAssignments = false;
   for (const assignment of assignments!) {
     const parsedAssingnment = parsedAssingnments?.find(
@@ -57,7 +62,12 @@ export async function recordCurrentState(
         planets
       );
     }
+
+    console.warn("Processed assignment");
   }
+  console.timeEnd("Recording assignments");
+
+  console.time("Taking snapshots");
 
   await Promise.all([
     takePlanetSnapshots(supabase, planets, adjacency),
@@ -66,8 +76,10 @@ export async function recordCurrentState(
       .insert({ player_count: totalPlayerCount, created_at: now }),
   ]);
 
+  console.timeEnd("Taking snapshots");
+
   if (hasNewAssignments) {
-    await generateStrategies(supabase);
+    //return await generateStrategies(supabase);
   }
 
   return true;
