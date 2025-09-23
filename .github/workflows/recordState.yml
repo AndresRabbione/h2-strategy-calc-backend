@@ -25,7 +25,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_HELLDIVERS_API_URL: ${{ secrets.NEXT_PUBLIC_HELLDIVERS_API_URL }}
-        run: run: |
+        run: |
           echo "Attempt 1..."
           npx tsx -r dotenv/config src/scripts/recordState.ts || \
           (echo "Attempt 2 after 10s..." && sleep 30 && npx tsx -r dotenv/config src/scripts/recordState.ts) || \
