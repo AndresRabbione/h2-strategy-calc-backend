@@ -37,8 +37,10 @@ export async function generateStrategies(
 ): Promise<boolean> {
   const maxRetries = 3;
   const now = new Date().toISOString();
-  const currentAssignments = await getAllAssignments();
 
+  console.time("Initial fetching");
+
+  const currentAssignments = await getAllAssignments();
   let { data: assignments } = await supabase
     .from("assignment")
     .select("*, objective(*)")
@@ -51,6 +53,8 @@ export async function generateStrategies(
       .gte("endDate", now);
     assignments = data;
   }
+
+  console.timeEnd("Initial fetching");
 
   if (!currentAssignments) {
     return false;
@@ -76,6 +80,8 @@ export async function generateStrategies(
   const planetRouter = new PlanetRouter();
 
   const assignmentIds = assignments.map((assignment) => assignment.id);
+
+  console.time("Second fetching");
 
   const [
     allPlanets,
@@ -109,6 +115,10 @@ export async function generateStrategies(
     latestSnapshots
   );
 
+  console.timeEnd("Second fetching");
+
+  console.time("Target gathering");
+
   const targets = new Map<number, Set<number>>();
 
   for (const assignment of assignments) {
@@ -136,9 +146,18 @@ export async function generateStrategies(
     );
 
     if (!strategyForAssignment) {
-      await supabase.from("strategy").insert({ assignmentId: assignment.id });
+      const { data: newStrategies } = await supabase
+        .from("strategy")
+        .insert({ assignmentId: assignment.id })
+        .select();
+
+      rawStrategies.push(...(newStrategies ?? []));
     }
   }
+
+  console.timeEnd("Target gathering");
+
+  console.time("Final Target gathering");
 
   const finalTargets = getFinalTargetList(
     targets,
@@ -148,6 +167,10 @@ export async function generateStrategies(
     estimatedPerPlayerImpact,
     totalPlayerCount
   );
+
+  console.timeEnd("Final Target gathering");
+
+  console.time("Step generation");
 
   const newSteps = generateStepsFromTargets(
     finalTargets,
@@ -160,15 +183,17 @@ export async function generateStrategies(
     currentStrategySteps
   );
 
-  const [{ data: insertedSteps }, { data: updatedSteps }] = await Promise.all([
+  const [{ data: insertedSteps }] = await Promise.all([
     supabase.from("strategyStep").insert(newSteps.toInsert).select(),
     supabase.from("strategyStep").upsert(newSteps.toUpdate).select(),
   ]);
 
-  const mergedSteps = insertedSteps?.concat(updatedSteps ?? []) ?? [];
+  console.timeEnd("Step generation");
+
+  console.time("Region splits");
 
   const regionSplits = getSplitsForTargets(
-    mergedSteps,
+    insertedSteps ?? [],
     allPlanets,
     now,
     estimatedPerPlayerImpact,
@@ -176,6 +201,8 @@ export async function generateStrategies(
   );
 
   await supabase.from("planet_region_split").insert(regionSplits);
+
+  console.timeEnd("Region splits");
 
   return true;
 }
@@ -262,9 +289,7 @@ export function generateStepsFromTargets(
         strategyId: strategyId,
         created_at: now,
         progress: mainProgress,
-        limit_date: new Date(
-          Date.now() + target.timeRemaining * 60 * 60 * 1000
-        ).toISOString(),
+        limit_date: new Date(Date.now() + target.timeRemaining).toISOString(),
       },
     ];
 
@@ -355,7 +380,7 @@ export function generateStepsFromTargets(
         created_at: now,
         progress: progress,
         limit_date: new Date(
-          Date.now() + longTermTargets[0].timeRemaining * 60 * 60 * 1000
+          Date.now() + longTermTargets[0].timeRemaining / 3600000
         ).toISOString(),
       };
 
@@ -577,6 +602,8 @@ export function getSplitsForTargets(
     const planet = allPlanets[step.planetId];
     const timeHorizon =
       (new Date(step.limit_date).getTime() - Date.now()) / 3600000;
+
+    console.log(new Date(timeHorizon * 3600000 + Date.now()));
     const assingedPlayerCount =
       totalPlayerCount * (step.playerPercentage / 100);
 
@@ -592,6 +619,8 @@ export function getSplitsForTargets(
       step,
       planetMaxHealth
     );
+
+    console.log(allocation);
 
     if (allocation.planet > 0) {
       const percentage =

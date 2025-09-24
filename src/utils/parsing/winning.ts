@@ -81,6 +81,7 @@ export function calcMinOffense(
   }
 
   const damagePerHour = (estimatedPerPlayerImpact / planet.maxHealth) * 100;
+  console.log(estimatedPerPlayerImpact);
 
   const effectiveHealth =
     calcPlanetRemainingPercentage(

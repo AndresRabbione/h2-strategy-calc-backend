@@ -75,6 +75,7 @@ export function estimatePlayerImpactPerHour(
   let filteredSnasphots = snapshots.filter(
     (snapshot) => snapshot.planetId === sortedPlanets[i].index
   );
+  console.log(filteredSnasphots);
   let progress = estimateHourlyRateForPlanet(filteredSnasphots);
 
   while (
@@ -89,7 +90,8 @@ export function estimatePlayerImpactPerHour(
     progress = estimateHourlyRateForPlanet(filteredSnasphots);
   }
 
-  const healthPerHourTotal = sortedPlanets[i].maxHealth / progress.regression;
+  const healthPerHourTotal =
+    sortedPlanets[i].maxHealth * (progress.regression / 100);
 
   return healthPerHourTotal / sortedPlanets[i].statistics.playerCount;
 }
@@ -107,6 +109,7 @@ export function estimateHourlyRateForPlanet(snapshots: PlanetSnapshotFull[]): {
   simple: number;
   regression: number;
 } {
+  console.log(snapshots);
   if (snapshots.length < 2) return { simple: 0, regression: 0 };
 
   const regenPerHour = calcPlanetRegenPercentage(
@@ -119,6 +122,8 @@ export function estimateHourlyRateForPlanet(snapshots: PlanetSnapshotFull[]): {
     t: new Date(s.createdAt).getTime() / 1000 / 60, // minutes since epoch
     p: calcPlanetProgressPercentage(s.health, s.maxHealth, null),
   }));
+
+  console.log(points);
 
   const t0 = points[0].t;
   const normalized = points.map((p) => ({ t: p.t - t0, p: p.p })); // time since first snapshot in minutes
@@ -141,8 +146,8 @@ export function estimateHourlyRateForPlanet(snapshots: PlanetSnapshotFull[]): {
   const rateRegression = slopePerMinute * 60; // % per hour
 
   return {
-    simple: rateSimple * -1 + regenPerHour,
-    regression: rateRegression * -1 + regenPerHour,
+    simple: rateSimple + regenPerHour,
+    regression: rateRegression + regenPerHour,
   };
 }
 

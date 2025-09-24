@@ -11,11 +11,11 @@ async function main() {
   const response = await generateStrategies(supabase);
 
   if (!response) {
-    throw new Error(`Recording failed`);
+    throw new Error(`Strategizing failed`);
   }
 }
 
 main().catch((err) => {
-  console.error("Error:", err);
+  console.error(err);
   process.exit(1);
 });

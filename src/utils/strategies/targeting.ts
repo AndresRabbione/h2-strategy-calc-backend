@@ -195,7 +195,7 @@ function addTarget(
   if (targetMap.has(targetId)) {
     targetMap.get(targetId)?.add(objectiveId);
   } else {
-    targetMap.set(targetId, new Set<number>().add(targetId));
+    targetMap.set(targetId, new Set<number>().add(objectiveId));
   }
 }
 
@@ -512,7 +512,7 @@ export function getFinalLiberationTargets(
 
   finalTargets.push({
     ...liberationTarget!,
-    valid: route.length > 0,
+    valid: route.length <= 0,
     dependants: [],
     needsCompletion: true,
     timeRemaining: remainingTime / route.length + 1,
@@ -897,8 +897,8 @@ function purgeDuplicates(
         previousTarget.needsCompletion ||= currentTarget.needsCompletion;
         previousTarget.objectiveIds = [
           ...new Set([
-            ...previousTarget.objectiveIds,
-            ...currentTarget.objectiveIds,
+            ...(previousTarget.objectiveIds ?? []),
+            ...(currentTarget.objectiveIds ?? []),
           ]),
         ];
         previousTarget.timeRemaining =
@@ -970,15 +970,16 @@ function getLowestRemainingTime(
   assignments: FullParsedAssignment[],
   objectiveIds: number[]
 ): number {
-  let minTimeRemaining = -1;
+  let minTimeRemaining = Infinity;
   let changedCount = 0;
 
   for (const assingment of assignments) {
-    const remainingTime = new Date(assingment.endDate).getTime();
+    const remainingTime = new Date(assingment.endDate).getTime() - Date.now();
+
     for (const objective of assingment.objective) {
       if (
         objectiveIds.includes(objective.id) &&
-        (remainingTime < minTimeRemaining || minTimeRemaining === -1)
+        remainingTime < minTimeRemaining
       ) {
         minTimeRemaining = remainingTime;
         changedCount++;

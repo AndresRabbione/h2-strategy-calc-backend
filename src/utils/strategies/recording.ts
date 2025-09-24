@@ -24,8 +24,6 @@ export async function recordCurrentState(
   const router = new PlanetRouter();
   const now = new Date().toISOString();
 
-  console.time("Fetching");
-
   const [assignments, planets, adjacency, { data: parsedAssingnments }] =
     await Promise.all([
       getAllAssignments(),
@@ -34,17 +32,18 @@ export async function recordCurrentState(
       supabase.from("assignment").select("*, objective(*)").gte("endDate", now),
     ]);
 
-  console.timeEnd("Fetching");
-
   if (!assignments || planets.length === 0 || !parsedAssingnments) {
     return false;
   }
+
+  const activeAssignmentIds = new Set<number>(
+    assignments.map((assignment) => assignment.id32)
+  );
 
   const totalPlayerCount = planets.reduce((accumulator, planet) => {
     return accumulator + planet.statistics.playerCount;
   }, 0);
 
-  console.time("Recording assignments");
   let hasNewAssignments = false;
   for (const assignment of assignments!) {
     const parsedAssingnment = parsedAssingnments?.find(
@@ -52,31 +51,30 @@ export async function recordCurrentState(
     );
 
     if (!parsedAssingnment) {
-      await parseAssignmentAndRecord(supabase, assignment, planets);
+      await parseAssignmentAndRecord(supabase, assignment, planets, now);
       hasNewAssignments = true;
     } else {
       await updateObjectives(
         supabase,
         assignments ?? [],
         parsedAssingnment,
-        planets
+        planets,
+        now
       );
     }
-
-    console.warn("Processed assignment");
   }
-  console.timeEnd("Recording assignments");
 
-  console.time("Taking snapshots");
+  const finishedAssignments = parsedAssingnments.filter(
+    (assignment) => !activeAssignmentIds.has(assignment.id)
+  );
 
   await Promise.all([
     takePlanetSnapshots(supabase, planets, adjacency),
     supabase
       .from("player_count_record")
       .insert({ player_count: totalPlayerCount, created_at: now }),
+    finishObjectives(supabase, finishedAssignments),
   ]);
-
-  console.timeEnd("Taking snapshots");
 
   if (hasNewAssignments) {
     //return await generateStrategies(supabase);
@@ -89,7 +87,8 @@ export async function updateObjectives(
   supabase: SupabaseClient<Database>,
   assignments: Assignment[],
   fullParsedAssignment: FullParsedAssignment,
-  allPlanets: Planet[]
+  allPlanets: Planet[],
+  now: string
 ) {
   const currentAssignment = assignments.filter(
     (assignment) => assignment.id32 === fullParsedAssignment.id
@@ -119,6 +118,7 @@ export async function updateObjectives(
           .from("objective")
           .update({
             playerProgress: progress,
+            last_updated: now,
           })
           .eq("id", objective.id)
           .select();
@@ -144,6 +144,7 @@ export async function updateObjectives(
             playerProgress:
               currentAssignment[0].progress[currentObjectiveIndex],
             enemyProgress: currentEnemyCount,
+            last_updated: now,
           })
           .eq("id", objective.id)
           .select();
@@ -161,7 +162,8 @@ export async function updateObjectives(
 export async function parseAssignmentAndRecord(
   supabase: SupabaseClient<Database>,
   assignment: Assignment,
-  allPlanets: Planet[]
+  allPlanets: Planet[],
+  now: string
 ) {
   const maxRetries = 3;
   const tasks = assignment.setting.tasks;
@@ -194,6 +196,7 @@ export async function parseAssignmentAndRecord(
         difficulty: parsedObj.getDifficulty(),
         sectorId: parsedObj.getTargetedSector(),
         objectiveIndex: i,
+        last_updated: now,
       });
     }
   }
@@ -299,4 +302,67 @@ export async function takePlanetSnapshots(
   if (rowsToInsert.length > 0) {
     await supabase.from("progressSnapshot").insert(rowsToInsert);
   }
+}
+
+export async function finishObjectives(
+  supabase: SupabaseClient<Database>,
+  finishedAssignments: FullParsedAssignment[]
+) {
+  for (const assignment of finishedAssignments) {
+    const assignmentEndDate = new Date(assignment.endDate);
+
+    await Promise.all(
+      assignment.objective.map(async (objective) => {
+        const lastUpdateDate = new Date(objective.last_updated);
+        const priorBreakpointDate = new Date(
+          assignmentEndDate.getTime() - 600000
+        ); //Ten minutes
+
+        if (
+          objective.totalAmount &&
+          calcPercentageDifference(
+            objective.playerProgress,
+            objective.totalAmount
+          ) <= 1 &&
+          lastUpdateDate <= priorBreakpointDate
+        ) {
+          const { data, error } = await supabase
+            .from("objective")
+            .update({
+              playerProgress: objective.totalAmount,
+            })
+            .eq("id", objective.id)
+            .select();
+
+          if (error) {
+            console.warn("Insert error: ", error);
+          }
+
+          return data;
+        } else if (
+          !objective.totalAmount &&
+          100 - objective.playerProgress <= 1 &&
+          lastUpdateDate <= priorBreakpointDate
+        ) {
+          const { data, error } = await supabase
+            .from("objective")
+            .update({
+              playerProgress: 100,
+            })
+            .eq("id", objective.id)
+            .select();
+
+          if (error) {
+            console.warn("Insert error: ", error);
+          }
+
+          return data;
+        }
+      })
+    );
+  }
+}
+
+function calcPercentageDifference(progress: number, total: number): number {
+  return ((total - progress) / total) * 100;
 }

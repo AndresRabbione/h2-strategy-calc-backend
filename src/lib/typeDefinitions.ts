@@ -284,6 +284,7 @@ export type DBObjectiveInsert = {
   difficulty: number | null;
   sectorId: number | null;
   objectiveIndex: number;
+  last_updated: string;
 };
 
 export type DBObjective = {
@@ -301,6 +302,7 @@ export type DBObjective = {
   difficulty: number | null;
   sectorId: number | null;
   objectiveIndex: number;
+  last_updated: string;
 };
 
 export type FullParsedAssignment = {
