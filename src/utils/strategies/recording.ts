@@ -17,6 +17,10 @@ import { fetchAllPlanets } from "../helldiversAPI/planets";
 import { DBLinks, PlanetRouter } from "./routing";
 import { calcPlanetProgressPercentage } from "../helldiversAPI/formulas";
 import { generateStrategies } from "./generator";
+import {
+  estimatePlayerImpactPerHour,
+  getLatestPlanetSnapshots,
+} from "./snapshots";
 
 export async function recordCurrentState(
   supabase: SupabaseClient<Database>
@@ -24,25 +28,29 @@ export async function recordCurrentState(
   const router = new PlanetRouter();
   const now = new Date().toISOString();
 
-  const [assignments, planets, adjacency, { data: parsedAssingnments }] =
-    await Promise.all([
-      getAllAssignments(),
-      fetchAllPlanets(),
-      router.buildAdjacencyMap(supabase),
-      supabase.from("assignment").select("*, objective(*)").gte("endDate", now),
-    ]);
+  const [
+    assignments,
+    planets,
+    adjacency,
+    { data: parsedAssingnments },
+    snapshots,
+  ] = await Promise.all([
+    getAllAssignments(),
+    fetchAllPlanets(),
+    router.buildAdjacencyMap(supabase),
+    supabase.from("assignment").select("*, objective(*)").gte("endDate", now),
+    getLatestPlanetSnapshots(supabase),
+  ]);
 
   if (!assignments || planets.length === 0 || !parsedAssingnments) {
     return false;
   }
 
-  const activeAssignmentIds = new Set<number>(
-    assignments.map((assignment) => assignment.id32)
-  );
-
   const totalPlayerCount = planets.reduce((accumulator, planet) => {
     return accumulator + planet.statistics.playerCount;
   }, 0);
+
+  const seenAssignments = new Set<number>();
 
   let hasNewAssignments = false;
   for (const assignment of assignments!) {
@@ -53,6 +61,7 @@ export async function recordCurrentState(
     if (!parsedAssingnment) {
       await parseAssignmentAndRecord(supabase, assignment, planets, now);
       hasNewAssignments = true;
+      seenAssignments.add(assignment.id32);
     } else {
       await updateObjectives(
         supabase,
@@ -61,11 +70,29 @@ export async function recordCurrentState(
         planets,
         now
       );
+      seenAssignments.add(parsedAssingnment.id);
+    }
+  }
+
+  for (const parsedAssignment of parsedAssingnments) {
+    if (
+      !seenAssignments.has(parsedAssignment.id) &&
+      parsedAssignment.is_active
+    ) {
+      await supabase
+        .from("assignment")
+        .update({ is_active: false })
+        .eq("id", parsedAssignment.id);
     }
   }
 
   const finishedAssignments = parsedAssingnments.filter(
-    (assignment) => !activeAssignmentIds.has(assignment.id)
+    (assignment) => !assignment.is_active
+  );
+
+  const estimatedPerPlayerImpact = estimatePlayerImpactPerHour(
+    planets,
+    snapshots
   );
 
   await Promise.all([
@@ -74,6 +101,9 @@ export async function recordCurrentState(
       .from("player_count_record")
       .insert({ player_count: totalPlayerCount, created_at: now }),
     finishObjectives(supabase, finishedAssignments),
+    supabase
+      .from("estimated_impact")
+      .insert({ impact: estimatedPerPlayerImpact }),
   ]);
 
   if (hasNewAssignments) {
@@ -214,6 +244,7 @@ export async function parseAssignmentAndRecord(
       brief: assignment.setting.overrideBrief,
       type: assignment.setting.type,
       is_decision: assignment.setting.flags === 2,
+      is_active: true,
     })
     .select();
 
@@ -226,6 +257,7 @@ export async function parseAssignmentAndRecord(
       brief: assignment.setting.overrideBrief,
       type: assignment.setting.type,
       is_decision: assignment.setting.flags === 2,
+      is_active: true,
     });
     newAssignment = data;
   }

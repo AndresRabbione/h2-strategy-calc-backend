@@ -501,7 +501,7 @@ export function getFinalLiberationTargets(
         valid: target.targetId === startingPlanet!.targetId,
         dependants: [],
         needsCompletion: true,
-        timeRemaining: remainingTime / route.length + 1,
+        timeRemaining: remainingTime / (route.length + 1),
       });
     }
   }
@@ -515,7 +515,7 @@ export function getFinalLiberationTargets(
     valid: route.length <= 0,
     dependants: [],
     needsCompletion: true,
-    timeRemaining: remainingTime / route.length + 1,
+    timeRemaining: remainingTime / (route.length + 1),
   });
 
   return finalTargets;
@@ -1000,7 +1000,7 @@ export function getTargetsForDecisionAssignment(
   adjacencyMap: Map<number, DBLinks>,
   sectors: { id: number; sector: number }[]
 ) {
-  let lowestResistance = -Infinity;
+  let lowestResistance = Infinity;
   let highestOccurrences = 0;
   let bestTargets: Planet[] = [];
   let bestObjectiveId: number | null = null;
@@ -1027,7 +1027,7 @@ export function getTargetsForDecisionAssignment(
       );
 
       const cumulativeResistance = planetRouter.calcRouteResistance(targets);
-      const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 0;
+      const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 1;
 
       if (objectiveCount > highestOccurrences) {
         bestTargets = targets;
@@ -1056,7 +1056,7 @@ export function getTargetsForDecisionAssignment(
       );
 
       const cumulativeResistance = planetRouter.calcRouteResistance(targets);
-      const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 0;
+      const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 1;
 
       if (objectiveCount > highestOccurrences) {
         bestTargets = targets;
@@ -1086,7 +1086,7 @@ export function getTargetsForDecisionAssignment(
         );
 
         const cumulativeResistance = planetRouter.calcRouteResistance(targets);
-        const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 0;
+        const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 1;
 
         if (objectiveCount > highestOccurrences) {
           bestTargets = targets;
@@ -1113,7 +1113,7 @@ export function getTargetsForDecisionAssignment(
         );
 
         const cumulativeResistance = planetRouter.calcRouteResistance(targets);
-        const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 0;
+        const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 1;
 
         if (objectiveCount > highestOccurrences) {
           bestTargets = targets;
@@ -1163,7 +1163,7 @@ export function getTargetsForDecisionAssignment(
 
       const cumulativeResistance =
         planetRouter.calcRouteResistance(filteredPlanets);
-      const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 0;
+      const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 1;
 
       if (objectiveCount > highestOccurrences) {
         bestTargets = filteredPlanets;
@@ -1208,7 +1208,7 @@ export function getTargetsForDecisionAssignment(
 
       const cumulativeResistance =
         planetRouter.calcRouteResistance(filteredPlanets);
-      const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 0;
+      const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 1;
 
       if (objectiveCount > highestOccurrences) {
         bestTargets = filteredPlanets;

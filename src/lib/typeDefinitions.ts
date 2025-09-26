@@ -221,6 +221,8 @@ export type ParsedAssignment = {
   title: string | null;
   brief: string | null;
   isMajorOrder: boolean;
+  is_decision: boolean;
+  is_active: boolean;
 };
 
 export type DSSStep = {
@@ -312,6 +314,8 @@ export type FullParsedAssignment = {
   isMajorOrder: boolean;
   title: string | null;
   objective: DBObjective[];
+  is_decision: boolean;
+  is_active: boolean;
 };
 
 export type PlanetSnapshotInsert = {

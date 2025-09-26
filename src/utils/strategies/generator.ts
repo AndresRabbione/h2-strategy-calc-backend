@@ -19,13 +19,11 @@ import {
   getTargetsForDecisionAssignment,
   ValidatedTargeting,
 } from "./targeting";
-import {
-  calcHourlyPlayerProgress,
-  calcPlanetProgressPercentage,
-} from "../helldiversAPI/formulas";
+import { calcPlanetProgressPercentage } from "../helldiversAPI/formulas";
 import { calcMinOffense } from "../parsing/winning";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "../../../database.types";
+import { playerImpactBaselineEstimate } from "@/lib/constants";
 
 type Allocation = {
   planet: number;
@@ -110,10 +108,9 @@ export async function generateStrategies(
     return accumulator + planet.statistics.playerCount;
   }, 0);
 
-  const estimatedPerPlayerImpact = estimatePlayerImpactPerHour(
-    allPlanets,
-    latestSnapshots
-  );
+  const estimatedPerPlayerImpact =
+    estimatePlayerImpactPerHour(allPlanets, latestSnapshots) ||
+    playerImpactBaselineEstimate;
 
   console.timeEnd("Second fetching");
 
@@ -185,7 +182,15 @@ export async function generateStrategies(
 
   const [{ data: insertedSteps }] = await Promise.all([
     supabase.from("strategyStep").insert(newSteps.toInsert).select(),
-    supabase.from("strategyStep").upsert(newSteps.toUpdate).select(),
+    Promise.all(
+      newSteps.toUpdate.map((step) =>
+        supabase
+          .from("strategyStep")
+          .update({ progress: step.progress })
+          .eq("id", step.id)
+          .select()
+      )
+    ),
   ]);
 
   console.timeEnd("Step generation");
@@ -249,8 +254,12 @@ export function generateStepsFromTargets(
   let firstIndependantId: number | null = null;
 
   for (const target of finalTargets) {
-    //We'll circle back later
-    if (!target.needsCompletion || seenTargets.has(target.targetId)) continue;
+    if (
+      !target.needsCompletion ||
+      seenTargets.has(target.targetId) ||
+      !target.valid
+    )
+      continue;
 
     seenTargets.add(target.targetId);
 
@@ -335,7 +344,10 @@ export function generateStepsFromTargets(
           (recordedStep) => recordedStep.planetId === step.planetId
         );
 
-        if (priorStep && priorStep.playerPercentage === step.playerPercentage) {
+        if (
+          priorStep &&
+          Math.abs(priorStep.playerPercentage - step.playerPercentage) <= 0.25
+        ) {
           updatedSteps.push({ ...priorStep, progress: step.progress });
         } else {
           createdSteps.push(step);
@@ -354,7 +366,9 @@ export function generateStepsFromTargets(
     );
     const longTermTargets = finalTargets.filter(
       (target) =>
-        !target.needsCompletion && !alreadyTargetedIds.has(target.targetId)
+        !target.needsCompletion &&
+        !alreadyTargetedIds.has(target.targetId) &&
+        target.valid
     );
 
     if (longTermTargets.length > 0) {
@@ -407,7 +421,7 @@ export function generateStepsFromTargets(
   }
 
   const cleanupSteps = genererateStepCleanup(
-    createdSteps,
+    createdSteps.concat(updatedSteps),
     currentStrategySteps,
     now,
     allPlanets
@@ -535,16 +549,12 @@ export function optimizeRegionAllocation(
   timeHorizon: number,
   estimatedPerPlayerImpact: number,
   totalPlayerCount: number,
-  step: StrategyStepFull,
-  planetMaxHealth: number
+  step: StrategyStepFull
 ): Allocation {
   let bestAlloc: Allocation = {
-    planet: calcHourlyPlayerProgress(
-      estimatedPerPlayerImpact,
-      totalPlayerCount,
-      step.playerPercentage,
-      planetMaxHealth
-    ),
+    planet:
+      estimatedPerPlayerImpact *
+      (totalPlayerCount * (step.playerPercentage / 100)),
     regions: Array(planet.regions.length).fill(0),
   };
   let bestTime =
@@ -562,7 +572,7 @@ export function optimizeRegionAllocation(
     for (let i = 0; i < planet.regions.length; i++) {
       if (!planet.regions[i].isAvailable) continue;
 
-      const chunk = Math.min(2500, bestAlloc.planet);
+      const chunk = Math.min(100, bestAlloc.planet);
 
       if (chunk <= 0) continue;
 
@@ -603,28 +613,24 @@ export function getSplitsForTargets(
     const timeHorizon =
       (new Date(step.limit_date).getTime() - Date.now()) / 3600000;
 
-    console.log(new Date(timeHorizon * 3600000 + Date.now()));
     const assingedPlayerCount =
       totalPlayerCount * (step.playerPercentage / 100);
-
-    const planetMaxHealth = planet.event
-      ? planet.event.maxHealth
-      : planet.maxHealth;
 
     const allocation = optimizeRegionAllocation(
       allPlanets[step.planetId],
       timeHorizon,
       estimatedPerPlayerImpact,
       totalPlayerCount,
-      step,
-      planetMaxHealth
+      step
     );
 
+    console.log(planet.name);
     console.log(allocation);
 
     if (allocation.planet > 0) {
       const percentage =
         allocation.planet / estimatedPerPlayerImpact / assingedPlayerCount;
+
       const mainSplit: RegionSplitInsert = {
         planet_id: planet.index,
         step_id: step.id,
