@@ -28,5 +28,4 @@ jobs:
         run: |
           echo "Attempt 1..."
           npx tsx -r dotenv/config src/scripts/generateStrategy.ts || \
-          (echo "Attempt 2 after 10s..." && sleep 30 && npx tsx -r dotenv/config src/scripts/generateStrategy.ts) || \
-          (echo "Attempt 3 after 30s..." && sleep 30 && npx tsx -r dotenv/config src/scripts/generateStrategy.ts)
+          (echo "Attempt 2 after 30s..." && sleep 30 && npx tsx -r dotenv/config src/scripts/generateStrategy.ts)
