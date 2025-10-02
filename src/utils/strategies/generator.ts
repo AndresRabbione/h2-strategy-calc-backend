@@ -20,7 +20,7 @@ import {
   ValidatedTargeting,
 } from "./targeting";
 import { calcPlanetProgressPercentage } from "../helldiversAPI/formulas";
-import { calcMinOffense } from "../parsing/winning";
+import { calcMinOffense, calcMinRegionOffense } from "../parsing/winning";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "../../../database.types";
 import { playerImpactBaselineEstimate } from "@/lib/constants";
@@ -205,7 +205,9 @@ export async function generateStrategies(
     totalPlayerCount
   );
 
-  await supabase.from("planet_region_split").insert(regionSplits);
+  const { error } = await supabase
+    .from("planet_region_split")
+    .insert(regionSplits);
 
   console.timeEnd("Region splits");
 
@@ -250,23 +252,48 @@ export function generateStepsFromTargets(
 
   const createdSteps: StrategyStepInsert[] = [];
   const updatedSteps: StrategyStepFull[] = [];
+  const interimSteps: StrategyStepInsert[] = [];
   const seenTargets = new Set<number>();
   let firstIndependantId: number | null = null;
 
   for (const target of finalTargets) {
-    if (
-      !target.needsCompletion ||
-      seenTargets.has(target.targetId) ||
-      !target.valid
-    )
+    if (!target.needsCompletion || seenTargets.has(target.targetId)) {
       continue;
+    }
 
     seenTargets.add(target.targetId);
 
+    const planetTarget = allPlanets[target.targetId];
+
+    const mainProgress = calcPlanetProgressPercentage(
+      planetTarget.health,
+      planetTarget.maxHealth,
+      planetTarget.event
+    );
+
+    const strategyId = getStrategyIdForObjectives(
+      assignments,
+      target.objectiveIds,
+      rawStrategies
+    );
+
+    if (!target.valid) {
+      const futureStep = {
+        planetId: target.targetId,
+        playerPercentage: 0,
+        strategyId: strategyId,
+        created_at: now,
+        progress: mainProgress,
+        limit_date: new Date(Date.now() + target.timeRemaining).toISOString(),
+      };
+
+      interimSteps.push(futureStep);
+
+      continue;
+    }
+
     if (!firstIndependantId && target.dependants.length === 0)
       firstIndependantId = target.targetId;
-
-    const planetTarget = allPlanets[target.targetId];
 
     let runningTotal = calcMinOffense(
       estimatedPerPlayerImpact,
@@ -277,18 +304,6 @@ export function generateStepsFromTargets(
 
     const dependantTargets = finalTargets.filter((dependant) =>
       target.dependants.includes(dependant.targetId)
-    );
-
-    const strategyId = getStrategyIdForObjectives(
-      assignments,
-      target.objectiveIds,
-      rawStrategies
-    );
-
-    const mainProgress = calcPlanetProgressPercentage(
-      planetTarget.health,
-      planetTarget.maxHealth,
-      planetTarget.event
     );
 
     const temporarySteps: StrategyStepInsert[] = [
@@ -339,20 +354,7 @@ export function generateStepsFromTargets(
 
     if (runningTotal <= playerbasePercentage) {
       playerbasePercentage -= runningTotal;
-      for (const step of temporarySteps) {
-        const priorStep = currentStrategySteps?.find(
-          (recordedStep) => recordedStep.planetId === step.planetId
-        );
-
-        if (
-          priorStep &&
-          Math.abs(priorStep.playerPercentage - step.playerPercentage) <= 0.25
-        ) {
-          updatedSteps.push({ ...priorStep, progress: step.progress });
-        } else {
-          createdSteps.push(step);
-        }
-      }
+      interimSteps.push(...temporarySteps);
     } else if (target.dependants.length > 0) {
       continue;
     } else {
@@ -362,25 +364,23 @@ export function generateStepsFromTargets(
 
   if (playerbasePercentage > 0) {
     const alreadyTargetedIds = new Set<number>(
-      createdSteps.concat(updatedSteps).map((step) => step.planetId)
+      interimSteps.map((step) => step.planetId)
     );
-    const longTermTargets = finalTargets.filter(
+    const longTermTarget = finalTargets.find(
       (target) =>
         !target.needsCompletion &&
         !alreadyTargetedIds.has(target.targetId) &&
         target.valid
     );
 
-    if (longTermTargets.length > 0) {
-      const selectedTarget = longTermTargets[0];
-
+    if (longTermTarget) {
       const strategyId = getStrategyIdForObjectives(
         assignments,
-        selectedTarget.objectiveIds,
+        longTermTarget.objectiveIds,
         rawStrategies
       );
 
-      const planet = allPlanets[selectedTarget.targetId];
+      const planet = allPlanets[longTermTarget.targetId];
       const progress = calcPlanetProgressPercentage(
         planet.health,
         planet.maxHealth,
@@ -388,48 +388,53 @@ export function generateStepsFromTargets(
       );
 
       const leftoverStep: StrategyStepInsert = {
-        planetId: longTermTargets[0].targetId,
+        planetId: longTermTarget.targetId,
         playerPercentage: playerbasePercentage,
         strategyId: strategyId,
         created_at: now,
         progress: progress,
         limit_date: new Date(
-          Date.now() + longTermTargets[0].timeRemaining / 3600000
+          Date.now() + longTermTarget.timeRemaining / 3600000
         ).toISOString(),
       };
 
-      createdSteps.push(leftoverStep);
+      interimSteps.push(leftoverStep);
     } else {
-      const firstInsert = createdSteps[0];
-      const firstUpdate = updatedSteps[0];
-
-      if (!firstInsert && firstUpdate) {
-        updatedSteps[0].playerPercentage += playerbasePercentage;
-      } else if (firstInsert && !firstUpdate) {
-        createdSteps[0].playerPercentage += playerbasePercentage;
-      } else {
-        if (
-          allPlanets[firstInsert.planetId].regenPerSecond <
-          allPlanets[firstUpdate.planetId].regenPerSecond
-        ) {
-          createdSteps[0].playerPercentage += playerbasePercentage;
-        } else {
-          updatedSteps[0].playerPercentage += playerbasePercentage;
-        }
-      }
+      const bestStep = interimSteps[0];
+      bestStep.playerPercentage += playerbasePercentage;
     }
   }
 
   const cleanupSteps = genererateStepCleanup(
-    createdSteps.concat(updatedSteps),
+    interimSteps,
     currentStrategySteps,
     now,
-    allPlanets
+    allPlanets,
+    true,
+    now //Dummy Value
   );
 
+  for (const step of interimSteps) {
+    const priorStep = currentStrategySteps
+      .filter((fullStep) => fullStep.planetId === step.planetId)
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )[0];
+
+    if (
+      priorStep &&
+      Math.abs(priorStep.playerPercentage - step.playerPercentage) < 0.01
+    ) {
+      updatedSteps.push({ ...priorStep, progress: step.progress });
+    } else {
+      createdSteps.push(step);
+    }
+  }
+
   return {
-    toInsert: createdSteps.concat(cleanupSteps),
-    toUpdate: updatedSteps,
+    toInsert: createdSteps.concat(cleanupSteps.toInsert),
+    toUpdate: updatedSteps.concat(cleanupSteps.toUpdate),
   };
 }
 
@@ -437,14 +442,23 @@ export function genererateStepCleanup(
   newSteps: StrategyStepInsert[],
   currentSteps: StrategyStepFull[],
   now: string,
-  allPlanets: Planet[]
-): StrategyStepInsert[] {
-  const cleanupSteps: StrategyStepInsert[] = [];
+  allPlanets: Planet[],
+  isActive: boolean,
+  endDate: string
+): { toInsert: StrategyStepInsert[]; toUpdate: StrategyStepFull[] } {
+  const cleanupStepsInsert: StrategyStepInsert[] = [];
+  const cleanupStepsUpdate: StrategyStepFull[] = [];
+  const seenPlanets = new Set<number>(newSteps.map((step) => step.planetId));
+  const newestSteps = getNewestStepsForPlanets(currentSteps);
 
-  const selectedTargetIds = newSteps.map((step) => step.planetId);
+  if (!newestSteps.some((step) => step.playerPercentage !== 0)) {
+    return { toInsert: [], toUpdate: [] };
+  }
 
-  for (const step of currentSteps) {
-    if (selectedTargetIds.includes(step.planetId)) continue;
+  for (const step of newestSteps) {
+    if (seenPlanets.has(step.planetId)) continue;
+
+    seenPlanets.add(step.planetId);
 
     const planet = allPlanets[step.planetId];
 
@@ -454,19 +468,29 @@ export function genererateStepCleanup(
       planet.event
     );
 
-    const newStep: StrategyStepInsert = {
-      planetId: step.planetId,
-      playerPercentage: 0,
-      strategyId: step.strategyId,
-      created_at: now,
-      progress: progress,
-      limit_date: step.limit_date,
-    };
+    if (step.playerPercentage === 0 && progress !== step.progress && isActive) {
+      cleanupStepsUpdate.push({ ...step, progress: progress });
+    } else if (isActive && step.playerPercentage !== 0) {
+      const newStep: StrategyStepInsert = {
+        planetId: step.planetId,
+        strategyId: step.strategyId,
+        limit_date: step.limit_date,
+        playerPercentage: 0,
+        created_at: now,
+        progress: progress,
+      };
 
-    cleanupSteps.push(newStep);
+      cleanupStepsInsert.push(newStep);
+    } else if (
+      !isActive &&
+      (Math.abs(new Date().getTime() - new Date(endDate).getTime()) <= 60000 ||
+        new Date().getTime() <= new Date(endDate).getTime())
+    ) {
+      cleanupStepsUpdate.push({ ...step, progress: progress });
+    }
   }
 
-  return cleanupSteps;
+  return { toInsert: cleanupStepsInsert, toUpdate: cleanupStepsUpdate };
 }
 
 function getStrategyIdForObjectives(
@@ -570,11 +594,22 @@ export function optimizeRegionAllocation(
     improved = false;
 
     for (let i = 0; i < planet.regions.length; i++) {
-      if (!planet.regions[i].isAvailable) continue;
+      const currentRegion = planet.regions[i];
+      if (!currentRegion.isAvailable) continue;
 
-      const chunk = Math.min(100, bestAlloc.planet);
+      const chunk =
+        calcMinRegionOffense(
+          estimatedPerPlayerImpact,
+          totalPlayerCount,
+          currentRegion.health,
+          currentRegion.maxHealth,
+          currentRegion.regenPerSecond,
+          timeHorizon
+        ) * estimatedPerPlayerImpact;
 
-      if (chunk <= 0) continue;
+      console.log(chunk);
+
+      if (chunk <= 0 || chunk > bestAlloc.planet) continue;
 
       const trial: Allocation = {
         planet: bestAlloc.planet - chunk,
@@ -583,6 +618,9 @@ export function optimizeRegionAllocation(
       trial.regions[i] += chunk;
 
       let time = simulateCompletionTime(planet, trial, timeHorizon);
+
+      console.log(trial);
+      console.log(time);
 
       if (time === null) {
         time = simulateCompletionTime(planet, trial, timeHorizon * 1.5);
@@ -609,7 +647,10 @@ export function getSplitsForTargets(
   const regionSplits: RegionSplitInsert[] = [];
 
   for (const step of newSteps) {
+    if (step.playerPercentage <= 0) continue;
+
     const planet = allPlanets[step.planetId];
+    console.log(planet.name);
     const timeHorizon =
       (new Date(step.limit_date).getTime() - Date.now()) / 3600000;
 
@@ -623,9 +664,6 @@ export function getSplitsForTargets(
       totalPlayerCount,
       step
     );
-
-    console.log(planet.name);
-    console.log(allocation);
 
     if (allocation.planet > 0) {
       const percentage =
@@ -663,4 +701,23 @@ export function getSplitsForTargets(
     }
   }
   return regionSplits;
+}
+
+export function getNewestStepsForPlanets(
+  steps: StrategyStepFull[]
+): StrategyStepFull[] {
+  const newestStepMap = new Map<number, StrategyStepFull>();
+
+  for (const step of steps) {
+    const existing = newestStepMap.get(step.planetId);
+    if (
+      !existing ||
+      new Date(step.created_at).getTime() >
+        new Date(existing.created_at).getTime()
+    ) {
+      newestStepMap.set(step.planetId, step);
+    }
+  }
+
+  return Array.from(newestStepMap.values());
 }

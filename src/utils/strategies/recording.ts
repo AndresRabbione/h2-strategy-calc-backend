@@ -16,7 +16,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPlanets } from "../helldiversAPI/planets";
 import { DBLinks, PlanetRouter } from "./routing";
 import { calcPlanetProgressPercentage } from "../helldiversAPI/formulas";
-import { generateStrategies } from "./generator";
+import { generateStrategies, getNewestStepsForPlanets } from "./generator";
 import {
   estimatePlayerImpactPerHour,
   getLatestPlanetSnapshots,
@@ -38,7 +38,7 @@ export async function recordCurrentState(
     getAllAssignments(),
     fetchAllPlanets(),
     router.buildAdjacencyMap(supabase),
-    supabase.from("assignment").select("*, objective(*)").gte("endDate", now),
+    supabase.from("assignment").select("*, objective(*)").eq("is_active", true),
     getLatestPlanetSnapshots(supabase),
   ]);
 
@@ -54,7 +54,7 @@ export async function recordCurrentState(
 
   let hasNewAssignments = false;
   for (const assignment of assignments!) {
-    const parsedAssingnment = parsedAssingnments?.find(
+    const parsedAssingnment = parsedAssingnments.find(
       (element) => element.id === assignment.id32
     );
 
@@ -74,20 +74,25 @@ export async function recordCurrentState(
     }
   }
 
+  const inactiveAssignmentIds: number[] = [];
   for (const parsedAssignment of parsedAssingnments) {
     if (
       !seenAssignments.has(parsedAssignment.id) &&
       parsedAssignment.is_active
     ) {
-      await supabase
-        .from("assignment")
-        .update({ is_active: false })
-        .eq("id", parsedAssignment.id);
+      inactiveAssignmentIds.push(parsedAssignment.id);
+      parsedAssignment.is_active = false;
     }
+    await updateSteps(supabase, parsedAssignment, planets, now);
   }
 
+  await supabase
+    .from("assignment")
+    .update({ is_active: false })
+    .in("id", inactiveAssignmentIds);
+
   const finishedAssignments = parsedAssingnments.filter(
-    (assignment) => !assignment.is_active
+    (assignment) => !assignment.is_active && !assignment.has_cleanup_done
   );
 
   const estimatedPerPlayerImpact = estimatePlayerImpactPerHour(
@@ -187,6 +192,49 @@ export async function updateObjectives(
       }
     })
   );
+}
+
+export async function updateSteps(
+  supabase: SupabaseClient<Database>,
+  assignment: FullParsedAssignment,
+  allPlanets: Planet[],
+  now: string
+) {
+  const { data: strategy } = await supabase
+    .from("strategy")
+    .select("*, strategyStep(*)")
+    .eq("assignmentId", assignment.id)
+    .single();
+
+  if (!strategy || strategy.strategyStep.length === 0) {
+    return;
+  }
+
+  const nowMilli = new Date(now).getTime();
+  const endDateMilli = new Date(assignment.endDate).getTime();
+
+  const newestSteps = getNewestStepsForPlanets(strategy.strategyStep);
+
+  for (const step of newestSteps) {
+    const planet = allPlanets[step.planetId];
+    const progress = calcPlanetProgressPercentage(
+      planet.health,
+      planet.maxHealth,
+      planet.event
+    );
+
+    if (assignment.is_active) {
+      await supabase
+        .from("strategyStep")
+        .update({ progress: progress })
+        .eq("id", step.id);
+    } else if (nowMilli <= endDateMilli + 600000 && !assignment.is_active) {
+      await supabase
+        .from("strategyStep")
+        .update({ progress: progress })
+        .eq("id", step.id);
+    }
+  }
 }
 
 export async function parseAssignmentAndRecord(
@@ -347,8 +395,8 @@ export async function finishObjectives(
       assignment.objective.map(async (objective) => {
         const lastUpdateDate = new Date(objective.last_updated);
         const priorBreakpointDate = new Date(
-          assignmentEndDate.getTime() - 600000
-        ); //Ten minutes
+          assignmentEndDate.getTime() - 60000
+        ); //One minute
 
         if (
           objective.totalAmount &&
@@ -392,9 +440,19 @@ export async function finishObjectives(
         }
       })
     );
+
+    await Promise.all([
+      supabase
+        .from("assignment")
+        .update({ has_cleanup_done: true })
+        .eq("id", assignment.id),
+    ]);
   }
 }
 
-function calcPercentageDifference(progress: number, total: number): number {
+export function calcPercentageDifference(
+  progress: number,
+  total: number
+): number {
   return ((total - progress) / total) * 100;
 }

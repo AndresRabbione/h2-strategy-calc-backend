@@ -95,3 +95,24 @@ export function calcMinOffense(
 
   return playersRequired / totalPlayerCount;
 }
+
+export function calcMinRegionOffense(
+  estimatedPerPlayerImpact: number,
+  totalPlayerCount: number,
+  health: number,
+  maxHealth: number,
+  regenPerSecond: number,
+  remainingTime: number
+): number {
+  const hoursRemaining = remainingTime / 1000 / 60 / 60;
+
+  const damagePerHour = (estimatedPerPlayerImpact / maxHealth) * 100;
+
+  const effectiveHealth =
+    calcPlanetRemainingPercentage(health, maxHealth, null) +
+    hoursRemaining * calcPlanetRegenPercentage(regenPerSecond, maxHealth);
+
+  const playersRequired = effectiveHealth / damagePerHour;
+
+  return playersRequired;
+}

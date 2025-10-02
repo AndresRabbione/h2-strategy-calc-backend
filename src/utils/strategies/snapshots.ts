@@ -52,7 +52,7 @@ export async function getLatestPlanetSnapshots(
   const { data: snapshots } = await supabase
     .from("progressSnapshot")
     .select("*")
-    .gte("createdAt", new Date(Date.now() - 60 * 60 * 1000).toISOString());
+    .gte("createdAt", new Date(Date.now() - 3600000).toISOString());
 
   return snapshots ?? [];
 }
