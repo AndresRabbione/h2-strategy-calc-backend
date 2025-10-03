@@ -1,0 +1,38 @@
+@startuml Recording Automation
+title Rercording Automation Squence Diagram
+
+actor cron_job
+participant automation_script
+entity PlanetRouter
+entity MOParser
+entity StrategyGenerator
+database supabase
+database Helldivers_API
+
+cron_job -> automation_script: Run every 5 minutes
+
+par
+automation_script -> Helldivers_API: Fetches planet and assignment data
+automation_script -> supabase: Fetches parsed assignment and snapshot data
+automation_script -> PlanetRouter: Creates a supply line map
+end 
+
+loop For each assignment retured by the api
+alt The assignment is not yet recorded
+automation_script -> MOParser: Creates the an Objective of the appropriate class
+automation_script -> supabase: Records assignment in the DB
+automation_script -> supabase: Records all objectives into the database
+else The assignment is in the DB
+automation_script -> supabase: Updates the progress of all objectives
+end
+end
+
+loop For each assignment already in the database
+automation_script -> supabase: Updates the progress of steps in the relevant strategy
+automation_script -> supabase: Marks appropriate assignments as inactive
+end
+
+automation_script -> supabase: Records planet progress snapshots, current player count,\nand finishes up objectives from completed assignments
+
+alt New assignments were recorded
+automation_script -> StrategyGenerator: Generates new strategies

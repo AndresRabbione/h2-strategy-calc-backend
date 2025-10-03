@@ -65,7 +65,7 @@ export async function recordCurrentState(
     } else {
       await updateObjectives(
         supabase,
-        assignments ?? [],
+        assignments!,
         parsedAssingnment,
         planets,
         now
@@ -109,6 +109,12 @@ export async function recordCurrentState(
     supabase
       .from("estimated_impact")
       .insert({ impact: estimatedPerPlayerImpact }),
+    ...planets.map(async (planet) => {
+      await supabase
+        .from("planet")
+        .update({ player_count: planet.statistics.playerCount })
+        .eq("id", planet.index);
+    }),
   ]);
 
   if (hasNewAssignments) {
