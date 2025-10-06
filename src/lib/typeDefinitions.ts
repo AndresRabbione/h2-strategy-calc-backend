@@ -172,6 +172,13 @@ export interface Attack {
   source: Planet;
 }
 
+export type DispatchV1 = {
+  id: number;
+  published: string;
+  type: number;
+  message: string;
+};
+
 export enum ObjectiveTypes {
   HOLD = 13,
   LIBERATE = 11, //Not sure about this one
