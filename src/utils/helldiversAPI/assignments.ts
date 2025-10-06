@@ -117,10 +117,6 @@ export async function getAllAssignments(
 
       const responseJson: Assignment[] = await request.json();
 
-      if (responseJson.length === 0) {
-        return null;
-      }
-
       return responseJson;
     } catch (e) {
       console.error(e);

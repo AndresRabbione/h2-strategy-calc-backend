@@ -20,7 +20,7 @@ import {
   ValidatedTargeting,
 } from "./targeting";
 import { calcPlanetProgressPercentage } from "../helldiversAPI/formulas";
-import { calcMinOffense, calcMinRegionOffense } from "../parsing/winning";
+import { calcMinOffense } from "../parsing/winning";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "../../../database.types";
 import { playerImpactBaselineEstimate } from "@/lib/constants";
@@ -597,17 +597,11 @@ export function optimizeRegionAllocation(
       const currentRegion = planet.regions[i];
       if (!currentRegion.isAvailable) continue;
 
-      const chunk =
-        calcMinRegionOffense(
-          estimatedPerPlayerImpact,
-          totalPlayerCount,
-          currentRegion.health,
-          currentRegion.maxHealth,
-          currentRegion.regenPerSecond,
-          timeHorizon
-        ) * estimatedPerPlayerImpact;
+      const minNeeded = currentRegion.regenPerSecond * 3600 + 1;
 
-      console.log(chunk);
+      if (bestAlloc.planet < minNeeded) continue;
+
+      const chunk = Math.min(Math.max(minNeeded, 2000), bestAlloc.planet);
 
       if (chunk <= 0 || chunk > bestAlloc.planet) continue;
 
