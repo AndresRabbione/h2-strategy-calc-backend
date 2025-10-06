@@ -21,6 +21,7 @@ import {
   estimatePlayerImpactPerHour,
   getLatestPlanetSnapshots,
 } from "./snapshots";
+import { getFactionIdFromName } from "../parsing/factions";
 
 export async function recordCurrentState(
   supabase: SupabaseClient<Database>
@@ -41,6 +42,8 @@ export async function recordCurrentState(
     supabase.from("assignment").select("*, objective(*)").eq("is_active", true),
     getLatestPlanetSnapshots(supabase),
   ]);
+
+  console.log(assignments);
 
   if (!assignments || planets.length === 0 || !parsedAssingnments) {
     return false;
@@ -110,10 +113,18 @@ export async function recordCurrentState(
       .from("estimated_impact")
       .insert({ impact: estimatedPerPlayerImpact }),
     ...planets.map(async (planet) => {
-      await supabase
+      const factionId = getFactionIdFromName(planet.currentOwner);
+
+      const { error } = await supabase
         .from("planet")
-        .update({ player_count: planet.statistics.playerCount })
+        .update({
+          player_count: planet.statistics.playerCount,
+          current_faction: factionId,
+          latest_enemy: factionId,
+        })
         .eq("id", planet.index);
+
+      console.warn(error);
     }),
   ]);
 
