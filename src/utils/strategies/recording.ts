@@ -22,6 +22,10 @@ import {
   getLatestPlanetSnapshots,
 } from "./snapshots";
 import { getFactionIdFromName } from "../parsing/factions";
+import {
+  getDispatchesAfterId,
+  sanitizeDispatchMessage,
+} from "../helldiversAPI/dispatch";
 
 export async function recordCurrentState(
   supabase: SupabaseClient<Database>
@@ -35,15 +39,20 @@ export async function recordCurrentState(
     adjacency,
     { data: parsedAssingnments },
     snapshots,
+    { data: lastRecordedDispatch },
   ] = await Promise.all([
     getAllAssignments(),
     fetchAllPlanets(),
     router.buildAdjacencyMap(supabase),
     supabase.from("assignment").select("*, objective(*)").eq("is_active", true),
     getLatestPlanetSnapshots(supabase),
+    supabase
+      .from("dispatch")
+      .select("*")
+      .order("published", { ascending: false })
+      .limit(1)
+      .single(),
   ]);
-
-  console.log(assignments);
 
   if (!assignments || planets.length === 0 || !parsedAssingnments) {
     return false;
@@ -89,13 +98,16 @@ export async function recordCurrentState(
     await updateSteps(supabase, parsedAssignment, planets, now);
   }
 
-  await supabase
-    .from("assignment")
-    .update({ is_active: false })
-    .in("id", inactiveAssignmentIds);
+  const [unrecordedDispatches] = await Promise.all([
+    getDispatchesAfterId(lastRecordedDispatch?.id ?? -Infinity),
+    supabase
+      .from("assignment")
+      .update({ is_active: false })
+      .in("id", inactiveAssignmentIds),
+  ]);
 
   const finishedAssignments = parsedAssingnments.filter(
-    (assignment) => !assignment.is_active && !assignment.has_cleanup_done
+    (assignment) => !assignment.is_active
   );
 
   const estimatedPerPlayerImpact = estimatePlayerImpactPerHour(
@@ -124,8 +136,20 @@ export async function recordCurrentState(
         })
         .eq("id", planet.index);
 
-      console.warn(error);
+      if (error) {
+        console.warn(error);
+      }
     }),
+    supabase.from("dispatch").upsert(
+      unrecordedDispatches.map((dispatch) => {
+        return {
+          id: dispatch.id,
+          type: dispatch.type,
+          message: sanitizeDispatchMessage(dispatch.message),
+          published: dispatch.published,
+        };
+      })
+    ),
   ]);
 
   if (hasNewAssignments) {
@@ -457,13 +481,6 @@ export async function finishObjectives(
         }
       })
     );
-
-    await Promise.all([
-      supabase
-        .from("assignment")
-        .update({ has_cleanup_done: true })
-        .eq("id", assignment.id),
-    ]);
   }
 }
 
