@@ -152,6 +152,10 @@ export async function recordCurrentState(
                 region.regenPerSecond,
                 region.maxHealth
               ),
+              current_faction:
+                region.health === 0
+                  ? 1
+                  : getFactionIdFromName(planet.currentOwner),
             })
             .eq("id", region.hash);
 
