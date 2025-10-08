@@ -15,7 +15,10 @@ import { MOParser } from "./parsing";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPlanets } from "../helldiversAPI/planets";
 import { DBLinks, PlanetRouter } from "./routing";
-import { calcPlanetProgressPercentage } from "../helldiversAPI/formulas";
+import {
+  calcPlanetProgressPercentage,
+  calcPlanetRegenPercentage,
+} from "../helldiversAPI/formulas";
 import { generateStrategies, getNewestStepsForPlanets } from "./generator";
 import {
   estimatePlayerImpactPerHour,
@@ -133,8 +136,30 @@ export async function recordCurrentState(
           player_count: planet.statistics.playerCount,
           current_faction: factionId,
           latest_enemy: factionId,
+          latest_regen: calcPlanetRegenPercentage(
+            planet.regenPerSecond,
+            planet.maxHealth
+          ),
         })
         .eq("id", planet.index);
+
+      await Promise.all(
+        planet.regions.map(async (region) => {
+          const { error: regionError } = await supabase
+            .from("planet_region")
+            .update({
+              latest_regen: calcPlanetRegenPercentage(
+                region.regenPerSecond,
+                region.maxHealth
+              ),
+            })
+            .eq("id", region.hash);
+
+          if (regionError) {
+            console.warn(regionError);
+          }
+        })
+      );
 
       if (error) {
         console.warn(error);

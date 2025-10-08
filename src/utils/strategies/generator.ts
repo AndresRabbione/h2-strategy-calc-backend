@@ -180,7 +180,7 @@ export async function generateStrategies(
     currentStrategySteps
   );
 
-  const [{ data: insertedSteps }] = await Promise.all([
+  const [{ data: insertedSteps }, updatedResults] = await Promise.all([
     supabase.from("strategyStep").insert(newSteps.toInsert).select(),
     Promise.all(
       newSteps.toUpdate.map((step) =>
@@ -189,16 +189,21 @@ export async function generateStrategies(
           .update({ progress: step.progress })
           .eq("id", step.id)
           .select()
+          .single()
       )
     ),
   ]);
+
+  const updatedSteps = updatedResults
+    .map((result) => result.data)
+    .filter((result) => result !== null);
 
   console.timeEnd("Step generation");
 
   console.time("Region splits");
 
   const regionSplits = getSplitsForTargets(
-    insertedSteps ?? [],
+    insertedSteps?.concat(updatedSteps) ?? [],
     allPlanets,
     now,
     estimatedPerPlayerImpact,
@@ -424,7 +429,7 @@ export function generateStepsFromTargets(
 
     if (
       priorStep &&
-      Math.abs(priorStep.playerPercentage - step.playerPercentage) < 0.01
+      Math.abs(priorStep.playerPercentage - step.playerPercentage) <= 0.5
     ) {
       updatedSteps.push({ ...priorStep, progress: step.progress });
     } else {
@@ -599,9 +604,13 @@ export function optimizeRegionAllocation(
 
       const minNeeded = currentRegion.regenPerSecond * 3600 + 1;
 
-      if (bestAlloc.planet < minNeeded) continue;
+      if (bestAlloc.planet < minNeeded && bestAlloc.regions[i] < minNeeded)
+        continue;
 
-      const chunk = Math.min(Math.max(minNeeded, 2000), bestAlloc.planet);
+      const chunk = Math.min(
+        bestAlloc.regions[i] >= minNeeded ? 200 : minNeeded,
+        bestAlloc.planet
+      );
 
       if (chunk <= 0 || chunk > bestAlloc.planet) continue;
 
@@ -612,9 +621,6 @@ export function optimizeRegionAllocation(
       trial.regions[i] += chunk;
 
       let time = simulateCompletionTime(planet, trial, timeHorizon);
-
-      console.log(trial);
-      console.log(time);
 
       if (time === null) {
         time = simulateCompletionTime(planet, trial, timeHorizon * 1.5);
@@ -658,6 +664,8 @@ export function getSplitsForTargets(
       totalPlayerCount,
       step
     );
+
+    console.log(allocation);
 
     if (allocation.planet > 0) {
       const percentage =
