@@ -61,8 +61,11 @@ export default function RegionsSidebar({
     name: string;
     size: RegionSize;
   }) {
-    console.log(currentRegion !== null && currentRegion.name !== "");
-    return currentRegion !== null && currentRegion.name !== "";
+    return (
+      currentRegion !== null &&
+      currentRegion.name !== "" &&
+      currentRegion.id !== -1
+    );
   }
 
   async function handleEdit() {
@@ -216,6 +219,28 @@ export default function RegionsSidebar({
         <div className="flex flex-col pt-3 p-6 gap-4 h-full justify-between">
           <div className="flex flex-col gap-4 items-center">
             <div className="flex flex-col gap-1 w-full">
+              <div className="flex flex-col gap-1">
+                <label className="pl-2" htmlFor="regionHash">
+                  Hash
+                </label>
+                <input
+                  type="text"
+                  id="regionHash"
+                  autoComplete="off"
+                  required
+                  name="regionHash"
+                  className="w-full border-1 p-2 text-start rounded-md items-start justify-start placeholder-gray-400 bg-gray-800"
+                  placeholder="Hash..."
+                  onChange={(event) => {
+                    setRegion({
+                      ...regionState!,
+                      id: parseInt(event.target.value),
+                    });
+                    setRegionChanged(true);
+                  }}
+                  value={regionState.id === -1 ? "" : regionState.id}
+                />
+              </div>
               <label className="pl-2" htmlFor="regionName">
                 Name
               </label>
