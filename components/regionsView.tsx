@@ -47,8 +47,13 @@ export default function RegionsView({
               {region.size}
             </span>
           </div>
-          <div className={`flex flex-fow gap-1 items-center justify-end`}>
-            <span>{region.latest_region_regen?.toFixed(2) + "%"}</span>
+          <div className={`flex flex-col gap-1 items-end justify-end`}>
+            <span style={{ color: regionColor }}>
+              {region.latest_region_regen?.toFixed(2) + "%"}
+            </span>
+            <span className="text-helldiver-yellow">
+              {region.region_player_count}
+            </span>
           </div>
           <span className="col-span-2" style={{ color: planetColor }}>
             {region.planet_name}

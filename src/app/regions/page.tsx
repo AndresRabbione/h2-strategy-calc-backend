@@ -35,6 +35,9 @@ async function filterSearchResults(
     case "nameUnknown":
       query = query.eq("region_name", "");
       break;
+    case "hasPlayers":
+      query = query.gt("region_player_count", 0);
+      break;
   }
 
   query = query.range(limit * page, limit - 1 + limit * page);
