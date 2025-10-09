@@ -77,20 +77,10 @@ export default async function RegionsPage({
   currentVerifiedParams.set("page", page.toString());
   currentVerifiedParams.set("filter", filter);
 
-  const { count, regions } = await filterSearchResults(
-    filter,
-    limit,
-    page,
-    search,
-    supabase
-  );
-
-  const planets = regions.map((region) => {
-    return {
-      name: region.planet_name!,
-      id: region.planet_id!,
-    };
-  });
+  const [{ count, regions }, { data: planets }] = await Promise.all([
+    filterSearchResults(filter, limit, page, search, supabase),
+    await supabase.from("planet").select("id, name"),
+  ]);
 
   return (
     <div className="h-full flex flex-col min-h-screen">

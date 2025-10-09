@@ -23,13 +23,10 @@ export default function RegionsView({
   const planetColor = getFactionColorFromId(region.current_planet_owner!);
 
   return (
-    <div className="h-full">
+    <div className="h-full" id={region.region_id!.toString()}>
       <button
         className="rounded p-2 flex flex-row justify-center items-center cursor-pointer gap-2 border-1 border-gray-400 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-in-out min-h-[1/3] h-full min-w-[50%] md:min-w-[25%] w-full"
-        onClick={() => {
-          setOpen((prev) => !prev);
-          console.log(region.region_id);
-        }}
+        onClick={() => setOpen((prev) => !prev)}
         disabled={disabled}
       >
         <div className="grid grid-cols-[70% 30%] grid-rows-[80% 20%] w-full h-full items-center">
