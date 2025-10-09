@@ -89,6 +89,11 @@ export default function Navbar() {
               Supply Lines
             </Link>
           </li>
+          <li role="menuitem">
+            <Link href={"/regions"} className="hover:bg-[#041b3d]">
+              Regions
+            </Link>
+          </li>
         </ul>
       </div>
 
@@ -111,6 +116,9 @@ export default function Navbar() {
             className="hover:bg-[#4a4a4b] p-1 rounded"
           >
             Supply Lines
+          </Link>
+          <Link href={"/regions"} className="hover:bg-[#41414b] p-1 rounded">
+            Regions
           </Link>
         </div>
         {!user || error ? (

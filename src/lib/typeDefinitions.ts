@@ -344,4 +344,16 @@ export type PlanetSnapshotFull = {
   regenPerSecond: number;
 };
 
+export type RegionView = {
+  region_id: number | null;
+  region_name: string | null;
+  planet_id: number | null;
+  size: "Town" | "Settlement" | "City" | "MegaCity" | null;
+  latest_region_regen: number | null;
+  current_region_owner: number | null;
+  planet_name: string | null;
+  latest_planet_regen: number | null;
+  current_planet_owner: number | null;
+};
+
 export type TableNames = keyof Database["public"]["Tables"];

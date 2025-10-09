@@ -156,6 +156,7 @@ export async function recordCurrentState(
                 region.health === 0
                   ? 1
                   : getFactionIdFromName(planet.currentOwner),
+              latest_player_count: region.players,
             })
             .eq("id", region.hash);
 

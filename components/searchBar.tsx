@@ -13,15 +13,15 @@ export default function SearchBar({
   const router = useRouter();
   const searchParams = new URLSearchParams(searchParamsString);
 
-  const filter = searchParams.get("filter") as string;
+  const search = searchParams.get("search") as string;
 
-  const [searchString, setSearchString] = useState(filter);
+  const [searchString, setSearchString] = useState(search);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       if (searchString.length > 2 || searchString.length === 0) {
         const newParams = new URLSearchParams(searchParams.toString());
-        newParams.set("filter", searchString);
+        newParams.set("search", searchString);
         newParams.set("page", "0");
         router.push(`?${newParams.toString()}`);
       }
