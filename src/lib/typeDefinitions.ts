@@ -354,6 +354,7 @@ export type RegionView = {
   planet_name: string | null;
   latest_planet_regen: number | null;
   current_planet_owner: number | null;
+  region_player_count: number | null;
 };
 
 export type TableNames = keyof Database["public"]["Tables"];

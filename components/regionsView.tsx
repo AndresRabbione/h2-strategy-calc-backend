@@ -23,13 +23,10 @@ export default function RegionsView({
   const planetColor = getFactionColorFromId(region.current_planet_owner!);
 
   return (
-    <div className="h-full">
+    <div className="h-full" id={region.region_id!.toString()}>
       <button
         className="rounded p-2 flex flex-row justify-center items-center cursor-pointer gap-2 border-1 border-gray-400 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-in-out min-h-[1/3] h-full min-w-[50%] md:min-w-[25%] w-full"
-        onClick={() => {
-          setOpen((prev) => !prev);
-          console.log(region.region_id);
-        }}
+        onClick={() => setOpen((prev) => !prev)}
         disabled={disabled}
       >
         <div className="grid grid-cols-[70% 30%] grid-rows-[80% 20%] w-full h-full items-center">
@@ -47,8 +44,13 @@ export default function RegionsView({
               {region.size}
             </span>
           </div>
-          <div className={`flex flex-fow gap-1 items-center justify-end`}>
-            <span>{region.latest_region_regen?.toFixed(2) + "%"}</span>
+          <div className={`flex flex-col gap-1 items-end justify-end`}>
+            <span style={{ color: regionColor }}>
+              {region.latest_region_regen?.toFixed(2) + "%"}
+            </span>
+            <span className="text-helldiver-yellow">
+              {region.region_player_count}
+            </span>
           </div>
           <span className="col-span-2" style={{ color: planetColor }}>
             {region.planet_name}

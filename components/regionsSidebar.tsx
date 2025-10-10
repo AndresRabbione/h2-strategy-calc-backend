@@ -56,9 +56,15 @@ export default function RegionsSidebar({
     }, 300);
   }
 
-  function isValidRegion() {
+  function isValidRegion(currentRegion: {
+    id: number;
+    name: string;
+    size: RegionSize;
+  }) {
     return (
-      regionState !== null && regionState.id !== -1 && regionState.name !== ""
+      currentRegion !== null &&
+      currentRegion.name !== "" &&
+      currentRegion.id !== -1
     );
   }
 
@@ -67,7 +73,7 @@ export default function RegionsSidebar({
 
     const supabase = createClient();
 
-    if (regionChanged && isValidRegion()) {
+    if (regionChanged && isValidRegion(regionState)) {
       setEdited(true);
 
       const { error: regionError, data: regionData } = await supabase
@@ -115,7 +121,7 @@ export default function RegionsSidebar({
   }
 
   async function handleInsert() {
-    if (!planetState && !isValidRegion()) return;
+    if (!planetState && !isValidRegion(regionState)) return;
 
     setEdited(true);
     setSavePending(true);
@@ -140,7 +146,7 @@ export default function RegionsSidebar({
     if (error) {
       toast.error(error.message, sidebarToastConfig);
     } else if (data) {
-      toast.success("Link created", sidebarToastConfig);
+      toast.success("Region created", sidebarToastConfig);
       setRegion(data);
     }
   }
@@ -213,6 +219,28 @@ export default function RegionsSidebar({
         <div className="flex flex-col pt-3 p-6 gap-4 h-full justify-between">
           <div className="flex flex-col gap-4 items-center">
             <div className="flex flex-col gap-1 w-full">
+              <div className="flex flex-col gap-1">
+                <label className="pl-2" htmlFor="regionHash">
+                  Hash
+                </label>
+                <input
+                  type="text"
+                  id="regionHash"
+                  autoComplete="off"
+                  required
+                  name="regionHash"
+                  className="w-full border-1 p-2 text-start rounded-md items-start justify-start placeholder-gray-400 bg-gray-800"
+                  placeholder="Hash..."
+                  onChange={(event) => {
+                    setRegion({
+                      ...regionState!,
+                      id: parseInt(event.target.value),
+                    });
+                    setRegionChanged(true);
+                  }}
+                  value={regionState.id === -1 ? "" : regionState.id}
+                />
+              </div>
               <label className="pl-2" htmlFor="regionName">
                 Name
               </label>
@@ -311,13 +339,13 @@ export default function RegionsSidebar({
                 isDeletePending ||
                 (!regionState && !planetState) ||
                 (!planetChanged && !regionChanged) ||
-                !isValidRegion()
+                !isValidRegion(regionState)
               }
               className={`${
                 (planetChanged || regionChanged) &&
                 planetState &&
                 !isSavePending &&
-                isValidRegion()
+                isValidRegion(regionState)
                   ? "bg-[#001d3dcf] dark:bg-green-800 hover:bg-[#001d3d] dark:hover:bg-green-700 cursor-pointer font-bold"
                   : "bg-[#05470593]"
               }  text-white  py-2 px-4 rounded-full w-full transition-all duration-100 ease-in-out`}
@@ -345,9 +373,15 @@ export default function RegionsSidebar({
                   ></path>
                 </svg>
               ) : null}
-              {!isSavePending ? "Save" : "Saving"}
+              {!isSavePending && !isInserting
+                ? "Save"
+                : !isInserting && isSavePending
+                ? "Saving"
+                : isInserting && !isSavePending
+                ? "Insert"
+                : "Inserting"}
             </button>
-            {isInserting ? (
+            {!isInserting ? (
               <button
                 type="button"
                 disabled={isSavePending || isDeletePending}

@@ -55,6 +55,7 @@ export default function RegionFilter({
             <option value="enemy">Enemy Regions</option>
             <option value="nameKnown">Named Regions</option>
             <option value="nameUnknown">Unnamed Regions</option>
+            <option value="hasPlayers">Has Players</option>
           </select>
         </div>
       </div>
