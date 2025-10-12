@@ -77,12 +77,38 @@ export async function getDispatchesAfterId(
   return dispatches.filter((dispatch) => dispatch.id > id);
 }
 
-export function sanitizeDispatchMessage(message: string): string {
-  // Remove tags like <i=1>...</i> and <i=3>
-  let clean = message.replace(/<[^>]+>/g, "");
-  // Remove any remaining HTML entities
-  clean = clean.replace(/&[a-z]+;/gi, "");
-  // Normalize whitespace
-  clean = clean.replace(/\s+/g, " ").trim();
-  return clean;
+export function sanitizeDispatchMessage(message: string): {
+  title: string;
+  body: string;
+} {
+  let sanitizedText = message.replace(/\\n/g, "\n");
+
+  const matches = [
+    ...sanitizedText.matchAll(/<i=(?:1|3)>([\s\S]*?)(?:<\/i>|\n\s*\n)/g),
+  ];
+
+  let title = "";
+  let titleEndIndex = 0;
+  let i = 0;
+
+  while (title.length == 0 && i < matches.length) {
+    const match = matches[i];
+    const candidate = match[1].trim();
+    const isAllCaps = /^[^a-z]*$/.test(candidate);
+
+    if (isAllCaps) {
+      title = candidate;
+      titleEndIndex = match.index! + match[0].length;
+    }
+
+    i++;
+  }
+
+  if (titleEndIndex !== 0) {
+    sanitizedText = sanitizedText.slice(titleEndIndex);
+  }
+
+  const body = sanitizedText.replace(/<[^>]+>/g, "").trim();
+
+  return { title, body };
 }

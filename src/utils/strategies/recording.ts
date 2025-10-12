@@ -172,11 +172,13 @@ export async function recordCurrentState(
     }),
     supabase.from("dispatch").upsert(
       unrecordedDispatches.map((dispatch) => {
+        const { title, body } = sanitizeDispatchMessage(dispatch.message);
         return {
           id: dispatch.id,
           type: dispatch.type,
-          message: sanitizeDispatchMessage(dispatch.message),
+          body,
           published: dispatch.published,
+          title,
         };
       })
     ),
