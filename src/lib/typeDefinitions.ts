@@ -105,7 +105,7 @@ export type Hazard = {
 export type GameEvent = {
   id: number;
   eventType: number;
-  faction: string;
+  faction: Factions;
   health: number;
   maxHealth: number;
   startTime: string;
