@@ -253,6 +253,7 @@ export function generateStepsFromTargets(
   toInsert: StrategyStepInsert[];
   toUpdate: StrategyStepFull[];
 } {
+  if (finalTargets.length === 0) return { toInsert: [], toUpdate: [] };
   let playerbasePercentage = 100;
 
   const createdSteps: StrategyStepInsert[] = [];
