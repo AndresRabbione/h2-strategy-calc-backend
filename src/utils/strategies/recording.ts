@@ -34,6 +34,7 @@ import {
 export async function recordCurrentState(
   supabase: SupabaseClient<Database>
 ): Promise<boolean> {
+  console.time("Initial Fetching");
   const router = new PlanetRouter();
   const now = new Date().toISOString();
 
@@ -77,6 +78,10 @@ export async function recordCurrentState(
 
   const seenAssignments = new Set<number>();
 
+  console.timeEnd("Initial Fetching");
+
+  console.time("Assignment parsing, recording, and updating");
+
   let hasNewAssignments = false;
   for (const assignment of assignments!) {
     const parsedAssingnment = parsedAssingnments.find(
@@ -99,6 +104,10 @@ export async function recordCurrentState(
     }
   }
 
+  console.timeEnd("Assignment parsing, recording, and updating");
+
+  console.time("Assignment activity and step progress update");
+
   const inactiveAssignmentIds: number[] = [];
   for (const parsedAssignment of parsedAssingnments) {
     if (
@@ -118,6 +127,10 @@ export async function recordCurrentState(
       .update({ is_active: false })
       .in("id", inactiveAssignmentIds),
   ]);
+
+  console.timeEnd("Assignment activity and step progress update");
+
+  console.time("Snapshots, objective cleanup, various recording");
 
   const finishedAssignments = parsedAssingnments.filter(
     (assignment) => !assignment.is_active
@@ -214,6 +227,8 @@ export async function recordCurrentState(
       })
     ),
   ]);
+
+  console.timeEnd("Snapshots, objective cleanup, various recording");
 
   if (hasNewAssignments) {
     return await generateStrategies(supabase);
