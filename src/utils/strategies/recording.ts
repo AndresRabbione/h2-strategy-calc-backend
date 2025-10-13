@@ -140,6 +140,7 @@ export async function recordCurrentState(
             planet.regenPerSecond,
             planet.maxHealth
           ),
+          current_event: planet.event ? planet.event.id : null,
         })
         .eq("id", planet.index);
 
