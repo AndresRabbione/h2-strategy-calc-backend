@@ -38,3 +38,16 @@ export function calcHourlyPlayerProgress(
   const damagePerHour = (estimatedPerPlayerImpact / maxHealth) * 100;
   return totalPlayerCount * (assignedPerentage / 100) * damagePerHour;
 }
+
+export function calcEnemyProgressForEvent(
+  startTime: string,
+  endTime: string
+): number {
+  const startDate = new Date(startTime);
+  const endDate = new Date(endTime);
+
+  const totalHours =
+    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
+
+  return 100 / totalHours;
+}

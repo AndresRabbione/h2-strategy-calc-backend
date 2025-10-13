@@ -16,6 +16,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPlanets } from "../helldiversAPI/planets";
 import { DBLinks, PlanetRouter } from "./routing";
 import {
+  calcEnemyProgressForEvent,
   calcPlanetProgressPercentage,
   calcPlanetRegenPercentage,
 } from "../helldiversAPI/formulas";
@@ -43,6 +44,7 @@ export async function recordCurrentState(
     { data: parsedAssingnments },
     snapshots,
     { data: lastRecordedDispatch },
+    { data: eventIds },
   ] = await Promise.all([
     getAllAssignments(),
     fetchAllPlanets(),
@@ -55,11 +57,19 @@ export async function recordCurrentState(
       .order("published", { ascending: false })
       .limit(1)
       .single(),
+    supabase.from("planet_event").select("id"),
   ]);
 
-  if (!assignments || planets.length === 0 || !parsedAssingnments) {
+  if (
+    !assignments ||
+    planets.length === 0 ||
+    !parsedAssingnments ||
+    !eventIds
+  ) {
     return false;
   }
+
+  const flattenedEventIds = eventIds.map((event) => event.id);
 
   const totalPlayerCount = planets.reduce((accumulator, planet) => {
     return accumulator + planet.statistics.playerCount;
@@ -129,6 +139,26 @@ export async function recordCurrentState(
       .insert({ impact: estimatedPerPlayerImpact }),
     ...planets.map(async (planet) => {
       const factionId = getFactionIdFromName(planet.currentOwner);
+
+      if (planet.event && !flattenedEventIds.includes(planet.event.id)) {
+        const { error: eventError } = await supabase
+          .from("planet_event")
+          .insert({
+            id: planet.event.id,
+            faction: getFactionIdFromName(planet.event.faction),
+            max_health: planet.event.maxHealth,
+            start_time: planet.event.startTime,
+            end_time: planet.event.endTime,
+            progress_per_hour: calcEnemyProgressForEvent(
+              planet.event.startTime,
+              planet.event.endTime
+            ),
+          });
+
+        if (eventError) {
+          console.warn(eventError);
+        }
+      }
 
       const { error } = await supabase
         .from("planet")
