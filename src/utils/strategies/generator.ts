@@ -24,7 +24,6 @@ import { calcMinOffense } from "../parsing/winning";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "../../../database.types";
 import { playerImpactBaselineEstimate } from "@/lib/constants";
-import { getDSS } from "../helldiversAPI/spaceStation";
 
 type Allocation = {
   planet: number;
@@ -88,7 +87,6 @@ export async function generateStrategies(
     adjacency,
     { data: strategies },
     { data: sectors },
-    dss,
   ] = await Promise.all([
     fetchAllPlanets(),
     getLatestPlanetSnapshots(supabase),
@@ -98,7 +96,6 @@ export async function generateStrategies(
       .select("*, strategyStep(*), dssStep(*)")
       .in("assignmentId", assignmentIds!),
     supabase.from("planet").select("id, sector"),
-    getDSS(),
   ]);
 
   const rawStrategies = strategies!.map((strategy) => {
@@ -112,11 +109,8 @@ export async function generateStrategies(
   }, 0);
 
   const estimatedPerPlayerImpact =
-    estimatePlayerImpactPerHour(
-      allPlanets,
-      latestSnapshots,
-      dss?.planet.index ?? 0
-    ) || playerImpactBaselineEstimate;
+    estimatePlayerImpactPerHour(allPlanets, latestSnapshots) ||
+    playerImpactBaselineEstimate;
 
   console.timeEnd("Second fetching");
 
