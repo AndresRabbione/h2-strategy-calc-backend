@@ -62,14 +62,17 @@ export async function getLatestPlanetSnapshots(
  */
 export function estimatePlayerImpactPerHour(
   allPlanets: Planet[],
-  snapshots: PlanetSnapshotFull[]
+  snapshots: PlanetSnapshotFull[],
+  dssTarget: number
 ): number {
   const boosetedProgressLimit = 8;
 
-  const sortedPlanets = allPlanets.filter((planet) => !planet.event);
-  sortedPlanets.sort(
-    (a, b) => b.statistics.playerCount - a.statistics.playerCount
+  const sortedPlanets = allPlanets.filter(
+    (planet) => !planet.event && planet.index !== dssTarget
   );
+  sortedPlanets.sort((a, b) => {
+    return b.statistics.playerCount - a.statistics.playerCount;
+  });
 
   let i = 0;
   let filteredSnasphots = snapshots.filter(
@@ -154,11 +157,13 @@ export function estimateHourlyRateForPlanet(snapshots: PlanetSnapshotFull[]): {
 export function estimateMaximumPlayerImpactPerHour(
   allPlanets: Planet[],
   snapshots: PlanetSnapshotFull[],
-  totalPlayerCount: number
+  totalPlayerCount: number,
+  dssTarget: number
 ): number {
   const estimatedPercentage = estimatePlayerImpactPerHour(
     allPlanets,
-    snapshots
+    snapshots,
+    dssTarget
   );
 
   return estimatedPercentage * totalPlayerCount;

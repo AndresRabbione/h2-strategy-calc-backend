@@ -30,6 +30,7 @@ import {
   getDispatchesAfterId,
   sanitizeDispatchMessage,
 } from "../helldiversAPI/dispatch";
+import { getDSS } from "../helldiversAPI/spaceStation";
 
 export async function recordCurrentState(
   supabase: SupabaseClient<Database>
@@ -46,6 +47,7 @@ export async function recordCurrentState(
     snapshots,
     { data: lastRecordedDispatch },
     { data: eventIds },
+    dss,
   ] = await Promise.all([
     getAllAssignments(),
     fetchAllPlanets(),
@@ -59,6 +61,7 @@ export async function recordCurrentState(
       .limit(1)
       .single(),
     supabase.from("planet_event").select("id"),
+    getDSS(),
   ]);
 
   if (
@@ -138,7 +141,8 @@ export async function recordCurrentState(
 
   const estimatedPerPlayerImpact = estimatePlayerImpactPerHour(
     planets,
-    snapshots
+    snapshots,
+    dss?.planet.index ?? 0
   );
 
   await Promise.all([
