@@ -668,7 +668,7 @@ export async function getSplitsForTargets(
     if (!previousSplits) previousSplits = [];
 
     const latestTimestamp =
-      previousSplits[0].created_at ?? new Date().toISOString();
+      previousSplits[0]?.created_at ?? new Date().toISOString();
 
     const planet = allPlanets[step.planetId];
     const timeHorizon =
