@@ -202,17 +202,22 @@ export async function generateStrategies(
 
   console.time("Region splits");
 
-  const regionSplits = getSplitsForTargets(
-    insertedSteps?.concat(updatedSteps) ?? [],
+  const regionSplits = await getSplitsForTargets(
+    insertedSteps?.concat(updatedSteps) ?? updatedSteps,
     allPlanets,
     now,
     estimatedPerPlayerImpact,
-    totalPlayerCount
+    totalPlayerCount,
+    supabase
   );
 
   const { error } = await supabase
     .from("planet_region_split")
     .insert(regionSplits);
+
+  if (error) {
+    console.warn(error);
+  }
 
   console.timeEnd("Region splits");
 
@@ -638,20 +643,34 @@ export function optimizeRegionAllocation(
   return bestAlloc;
 }
 
-export function getSplitsForTargets(
+export async function getSplitsForTargets(
   newSteps: StrategyStepFull[],
   allPlanets: Planet[],
   now: string,
   estimatedPerPlayerImpact: number,
-  totalPlayerCount: number
-): RegionSplitInsert[] {
+  totalPlayerCount: number,
+  supabase: SupabaseClient<Database>
+): Promise<RegionSplitInsert[]> {
   const regionSplits: RegionSplitInsert[] = [];
 
   for (const step of newSteps) {
     if (step.playerPercentage <= 0) continue;
 
+    const identicalSplits: RegionSplitInsert[] = [];
+    const newSplits: RegionSplitInsert[] = [];
+
+    let { data: previousSplits } = await supabase
+      .from("planet_region_split")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .eq("step_id", step.id);
+
+    if (!previousSplits) previousSplits = [];
+
+    const latestTimestamp =
+      previousSplits[0].created_at ?? new Date().toISOString();
+
     const planet = allPlanets[step.planetId];
-    console.log(planet.name);
     const timeHorizon =
       (new Date(step.limit_date).getTime() - Date.now()) / 3600000;
 
@@ -666,11 +685,16 @@ export function getSplitsForTargets(
       step
     );
 
-    console.log(allocation);
-
     if (allocation.planet > 0) {
       const percentage =
         allocation.planet / estimatedPerPlayerImpact / assingedPlayerCount;
+
+      const priorSplit = previousSplits.find(
+        (split) =>
+          split.planet_id === planet.index &&
+          !split.region_id &&
+          split.created_at === latestTimestamp
+      );
 
       const mainSplit: RegionSplitInsert = {
         planet_id: planet.index,
@@ -679,7 +703,12 @@ export function getSplitsForTargets(
         created_at: now,
         percentage: percentage * 100,
       };
-      regionSplits.push(mainSplit);
+
+      if (!priorSplit || priorSplit.percentage !== percentage * 100) {
+        newSplits.push(mainSplit);
+      } else {
+        identicalSplits.push(mainSplit);
+      }
     }
 
     for (let i = 0; i < planet.regions.length; i++) {
@@ -692,6 +721,14 @@ export function getSplitsForTargets(
         currentRegionAllocation /
         estimatedPerPlayerImpact /
         assingedPlayerCount;
+
+      const priorSplit = previousSplits.find(
+        (split) =>
+          split.planet_id === planet.index &&
+          split.region_id === currentRegion.hash &&
+          split.created_at === latestTimestamp
+      );
+
       const secondarySplit: RegionSplitInsert = {
         planet_id: planet.index,
         step_id: step.id,
@@ -700,7 +737,16 @@ export function getSplitsForTargets(
         percentage: percentage * 100,
       };
 
-      regionSplits.push(secondarySplit);
+      if (!priorSplit || priorSplit.percentage !== percentage * 100) {
+        newSplits.push(secondarySplit);
+      } else {
+        identicalSplits.push(secondarySplit);
+      }
+    }
+
+    if (newSplits.length !== 0) {
+      regionSplits.concat(identicalSplits);
+      regionSplits.concat(newSplits);
     }
   }
   return regionSplits;
