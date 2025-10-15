@@ -165,6 +165,17 @@ export async function generateStrategies(
     totalPlayerCount
   );
 
+  finalTargets.sort((a, b) => {
+    if (a.objectiveIds.length !== b.objectiveIds.length) {
+      return b.objectiveIds.length - a.objectiveIds.length;
+    }
+
+    return (
+      allPlanets[a.targetId].regenPerSecond -
+      allPlanets[b.targetId].regenPerSecond
+    );
+  });
+
   console.timeEnd("Final Target gathering");
 
   console.time("Step generation");
