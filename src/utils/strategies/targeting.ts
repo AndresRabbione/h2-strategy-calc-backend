@@ -21,6 +21,7 @@ export type ValidatedTargeting = {
   dependants: number[];
   needsCompletion: boolean;
   timeRemaining: number;
+  regen: number;
 };
 
 export type UnvalidatedTargeting = {
@@ -502,6 +503,7 @@ export function getFinalLiberationTargets(
         dependants: [],
         needsCompletion: true,
         timeRemaining: remainingTime / (route.length + 1),
+        regen: allPlanets[target.targetId].regenPerSecond,
       });
     }
   }
@@ -516,6 +518,7 @@ export function getFinalLiberationTargets(
     dependants: [],
     needsCompletion: true,
     timeRemaining: remainingTime / (route.length + 1),
+    regen: allPlanets[liberationTarget!.targetId].regenPerSecond,
   });
 
   return finalTargets;
@@ -557,6 +560,7 @@ export function getFinalDefenseTargets(
         dependants: attackers.map((attacker) => attacker.targetId),
         needsCompletion: true,
         timeRemaining: assignmentEndTime,
+        regen: allPlanets[attacker.targetId].regenPerSecond,
       });
     }
   }
@@ -571,6 +575,7 @@ export function getFinalDefenseTargets(
       dependants: [],
       needsCompletion: true,
       timeRemaining: assignmentEndTime,
+      regen: allPlanets[specifiedTarget!.targetId].regenPerSecond,
     });
   }
 
@@ -835,6 +840,7 @@ export function getFinalLiberateMoreTargets(
       dependants: [],
       needsCompletion: true,
       timeRemaining: assignmentEndTime,
+      regen: allPlanets[liberationTarget.targetId].regenPerSecond,
     });
 
     addedCount++;
@@ -856,6 +862,7 @@ export function getFinalDoAmountTarget(
     needsCompletion: false,
     dependants: [],
     timeRemaining: remainingTime,
+    regen: allPlanets[targets[0].targetId].regenPerSecond,
   };
 
   return finalTarget;
