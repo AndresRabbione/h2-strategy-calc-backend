@@ -717,7 +717,7 @@ export async function getSplitsForTargets(
 
       if (
         !priorSplit ||
-        Math.abs(priorSplit.percentage - percentage * 100) < 0.1
+        Math.abs(priorSplit.percentage - percentage * 100) > 0.1
       ) {
         newSplits.push(mainSplit);
       } else {
