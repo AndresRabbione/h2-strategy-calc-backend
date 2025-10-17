@@ -216,13 +216,15 @@ export async function recordCurrentState(
     }),
     supabase.from("dispatch").upsert(
       unrecordedDispatches.map((dispatch) => {
-        const { title, body } = sanitizeDispatchMessage(dispatch.message);
+        const dispatchText = sanitizeDispatchMessage(dispatch.message);
+        if (dispatchText.title === "") dispatchText.title = "BREAKING NEWS";
+
         return {
           id: dispatch.id,
           type: dispatch.type,
-          body,
+          body: dispatchText.body,
           published: dispatch.published,
-          title,
+          title: dispatchText.title,
         };
       })
     ),
