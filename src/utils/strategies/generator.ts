@@ -165,6 +165,17 @@ export async function generateStrategies(
     totalPlayerCount
   );
 
+  finalTargets.sort((a, b) => {
+    if (a.objectiveIds.length !== b.objectiveIds.length) {
+      return b.objectiveIds.length - a.objectiveIds.length;
+    }
+
+    return (
+      allPlanets[a.targetId].regenPerSecond -
+      allPlanets[b.targetId].regenPerSecond
+    );
+  });
+
   console.timeEnd("Final Target gathering");
 
   console.time("Step generation");
@@ -704,7 +715,10 @@ export async function getSplitsForTargets(
         percentage: percentage * 100,
       };
 
-      if (!priorSplit || priorSplit.percentage !== percentage * 100) {
+      if (
+        !priorSplit ||
+        Math.abs(priorSplit.percentage - percentage * 100) > 0.1
+      ) {
         newSplits.push(mainSplit);
       } else {
         identicalSplits.push(mainSplit);
@@ -737,7 +751,10 @@ export async function getSplitsForTargets(
         percentage: percentage * 100,
       };
 
-      if (!priorSplit || priorSplit.percentage !== percentage * 100) {
+      if (
+        !priorSplit ||
+        Math.abs(priorSplit.percentage - percentage * 100) < 0.1
+      ) {
         newSplits.push(secondarySplit);
       } else {
         identicalSplits.push(secondarySplit);
@@ -745,8 +762,8 @@ export async function getSplitsForTargets(
     }
 
     if (newSplits.length !== 0) {
-      regionSplits.concat(identicalSplits);
-      regionSplits.concat(newSplits);
+      regionSplits.push(...identicalSplits);
+      regionSplits.push(...newSplits);
     }
   }
   return regionSplits;

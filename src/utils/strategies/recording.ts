@@ -125,7 +125,7 @@ export async function recordCurrentState(
     getDispatchesAfterId(lastRecordedDispatch?.id ?? -Infinity),
     supabase
       .from("assignment")
-      .update({ is_active: false })
+      .update({ is_active: false, actual_end_date: now })
       .in("id", inactiveAssignmentIds),
   ]);
 
@@ -217,13 +217,15 @@ export async function recordCurrentState(
     }),
     supabase.from("dispatch").upsert(
       unrecordedDispatches.map((dispatch) => {
-        const { title, body } = sanitizeDispatchMessage(dispatch.message);
+        const dispatchText = sanitizeDispatchMessage(dispatch.message);
+        if (dispatchText.title === "") dispatchText.title = "BREAKING NEWS";
+
         return {
           id: dispatch.id,
           type: dispatch.type,
-          body,
+          body: dispatchText.body,
           published: dispatch.published,
-          title,
+          title: dispatchText.title,
         };
       })
     ),
