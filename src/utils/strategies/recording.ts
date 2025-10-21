@@ -124,7 +124,7 @@ export async function recordCurrentState(
     getDispatchesAfterId(lastRecordedDispatch?.id ?? -Infinity),
     supabase
       .from("assignment")
-      .update({ is_active: false })
+      .update({ is_active: false, actual_end_date: now })
       .in("id", inactiveAssignmentIds),
   ]);
 
