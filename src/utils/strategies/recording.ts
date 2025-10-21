@@ -30,6 +30,7 @@ import {
   getDispatchesAfterId,
   sanitizeDispatchMessage,
 } from "../helldiversAPI/dispatch";
+import { warStartTime } from "@/lib/constants";
 
 export async function recordCurrentState(
   supabase: SupabaseClient<Database>
@@ -400,6 +401,7 @@ export async function parseAssignmentAndRecord(
 
   const endTime = Date.now() + assignment.expiresIn * 1000;
   const endDate = new Date(endTime);
+  const startDate = new Date(warStartTime + assignment.startTime * 1000);
 
   let { data: newAssignment } = await supabase
     .from("assignment")
@@ -412,6 +414,7 @@ export async function parseAssignmentAndRecord(
       type: assignment.setting.type,
       is_decision: assignment.setting.flags === 2,
       is_active: true,
+      start_date: startDate.toISOString(),
     })
     .select();
 
