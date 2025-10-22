@@ -127,7 +127,7 @@ export async function recordCurrentState(
       .from("assignment")
       .update({
         is_active: false,
-        actual_end_date: new Date(now + 300000).toISOString(),
+        actual_end_date: new Date(Date.now() - 300000).toISOString(),
       })
       .in("id", inactiveAssignmentIds),
   ]);
@@ -147,12 +147,10 @@ export async function recordCurrentState(
 
   await Promise.all([
     takePlanetSnapshots(supabase, planets, adjacency),
-    supabase
-      .from("player_count_record")
-      .insert({
-        player_count: totalPlayerCount,
-        created_at: new Date(Date.now() - 300000).toISOString(),
-      }),
+    supabase.from("player_count_record").insert({
+      player_count: totalPlayerCount,
+      created_at: now,
+    }),
     finishObjectives(supabase, finishedAssignments),
     supabase
       .from("estimated_impact")
