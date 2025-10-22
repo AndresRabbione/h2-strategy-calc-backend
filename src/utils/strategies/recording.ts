@@ -125,7 +125,10 @@ export async function recordCurrentState(
     getDispatchesAfterId(lastRecordedDispatch?.id ?? -Infinity),
     supabase
       .from("assignment")
-      .update({ is_active: false, actual_end_date: now })
+      .update({
+        is_active: false,
+        actual_end_date: new Date(now + 300000).toISOString(),
+      })
       .in("id", inactiveAssignmentIds),
   ]);
 
@@ -146,7 +149,10 @@ export async function recordCurrentState(
     takePlanetSnapshots(supabase, planets, adjacency),
     supabase
       .from("player_count_record")
-      .insert({ player_count: totalPlayerCount, created_at: now }),
+      .insert({
+        player_count: totalPlayerCount,
+        created_at: new Date(Date.now() - 300000).toISOString(),
+      }),
     finishObjectives(supabase, finishedAssignments),
     supabase
       .from("estimated_impact")
