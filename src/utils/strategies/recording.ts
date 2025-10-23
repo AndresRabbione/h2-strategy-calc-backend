@@ -3,6 +3,7 @@ import { Database } from "../../../database.types";
 import {
   Assignment,
   DBObjectiveInsert,
+  DBPlanet,
   Factions,
   FullParsedAssignment,
   ObjectiveTypes,
@@ -31,6 +32,7 @@ import {
   sanitizeDispatchMessage,
 } from "../helldiversAPI/dispatch";
 import { warStartTime } from "@/lib/constants";
+import { getObjectiveTextMarkup } from "../objectives/textFormation";
 
 export async function recordCurrentState(
   supabase: SupabaseClient<Database>
@@ -47,6 +49,7 @@ export async function recordCurrentState(
     snapshots,
     { data: lastRecordedDispatch },
     { data: eventIds },
+    { data: dbPlanets },
   ] = await Promise.all([
     getAllAssignments(),
     fetchAllPlanets(),
@@ -60,6 +63,7 @@ export async function recordCurrentState(
       .limit(1)
       .single(),
     supabase.from("planet_event").select("id"),
+    supabase.from("planet").select("*").order("id", { ascending: true }),
   ]);
 
   if (
@@ -90,7 +94,13 @@ export async function recordCurrentState(
     );
 
     if (!parsedAssingnment) {
-      await parseAssignmentAndRecord(supabase, assignment, planets, now);
+      await parseAssignmentAndRecord(
+        supabase,
+        assignment,
+        planets,
+        now,
+        dbPlanets ?? []
+      );
       hasNewAssignments = true;
       seenAssignments.add(assignment.id32);
     } else {
@@ -367,7 +377,8 @@ export async function parseAssignmentAndRecord(
   supabase: SupabaseClient<Database>,
   assignment: Assignment,
   allPlanets: Planet[],
-  now: string
+  now: string,
+  allDBPlanets: DBPlanet[]
 ) {
   const maxRetries = 3;
   const tasks = assignment.setting.tasks;
@@ -401,6 +412,7 @@ export async function parseAssignmentAndRecord(
         sectorId: parsedObj.getTargetedSector(),
         objectiveIndex: i,
         last_updated: now,
+        parsed_text: "",
       });
     }
   }
@@ -440,6 +452,10 @@ export async function parseAssignmentAndRecord(
 
   await Promise.all(
     dbObjective.map(async (objective) => {
+      objective.parsed_text = await getObjectiveTextMarkup(
+        objective,
+        allDBPlanets
+      );
       const { data, error } = await supabase
         .from("objective")
         .insert(objective)

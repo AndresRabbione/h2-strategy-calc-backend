@@ -8,8 +8,8 @@ import {
 import { DBLinks, PlanetRouter } from "./routing";
 import { getAttackersForPlanet } from "../helldiversAPI/gambits";
 import {
+  getAPIFactionNameFromId,
   getFactionIdFromName,
-  getFactionNameFromId,
   isUnderAttackByFaction,
 } from "../parsing/factions";
 import { isGambitWinnable } from "../parsing/winning";
@@ -299,7 +299,7 @@ export function getDefendAmountTargets(
     const attackers = getAttackersForPlanet(planet, adjacencyMap, allPlanets);
 
     const factionName = objective.factionId
-      ? getFactionNameFromId(objective.factionId)
+      ? getAPIFactionNameFromId(objective.factionId)
       : null;
 
     if (objective.factionId) {

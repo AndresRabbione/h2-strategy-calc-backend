@@ -1,6 +1,6 @@
 import { FactionIDs, Factions, Planet } from "@/lib/typeDefinitions";
 
-export function getFactionNameFromId(factionId: number): Factions {
+export function getAPIFactionNameFromId(factionId: number): Factions {
   switch (factionId) {
     case FactionIDs.HUMANS:
       return Factions.HUMANS;
@@ -12,6 +12,23 @@ export function getFactionNameFromId(factionId: number): Factions {
       return Factions.TERMINIDS;
     default:
       return Factions.HUMANS;
+  }
+}
+export function getFactionNameFromId(
+  factionId: number,
+  isCountable: boolean
+): string {
+  switch (factionId) {
+    case FactionIDs.HUMANS:
+      return isCountable ? "Humans" : "Super Earth";
+    case FactionIDs.AUTOMATONS:
+      return isCountable ? "Automatons" : "the Automatons";
+    case FactionIDs.ILLUMINATE:
+      return isCountable ? "Illuminate" : "the Illuminate";
+    case FactionIDs.TERMINIDS:
+      return isCountable ? "Terminids" : "the Terminids";
+    default:
+      return isCountable ? "Humans" : "Super Earth";
   }
 }
 

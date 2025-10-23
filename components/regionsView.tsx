@@ -19,8 +19,14 @@ export default function RegionsView({
   planets: { name: string; id: number }[];
 }) {
   const [isSidebarOpen, setOpen] = useState(false);
-  const regionColor = getFactionColorFromId(region.current_region_owner!);
-  const planetColor = getFactionColorFromId(region.current_planet_owner!);
+  const regionColor = getFactionColorFromId(
+    region.current_region_owner!,
+    false
+  );
+  const planetColor = getFactionColorFromId(
+    region.current_planet_owner!,
+    false
+  );
 
   return (
     <div className="h-full" id={region.region_id!.toString()}>

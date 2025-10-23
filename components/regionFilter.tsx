@@ -41,7 +41,7 @@ export default function RegionFilter({
   return (
     <div className="p-3 pt-1.5 md:pt-6 md:p-6 md:pr-3 rounded-xl justify-center items-center">
       <div className="flex flex-col sm:flex-row sm:items-center gap-1 md:gap-3">
-        <label className="text-white text-lg font-semibold">FIlter:</label>
+        <label className="text-white text-lg font-semibold">Filter:</label>
         <div className="relative w-full sm:w-auto">
           <select
             disabled={disabled}

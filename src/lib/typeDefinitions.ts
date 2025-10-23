@@ -294,6 +294,7 @@ export type DBObjectiveInsert = {
   sectorId: number | null;
   objectiveIndex: number;
   last_updated: string;
+  parsed_text: string;
 };
 
 export type DBObjective = {
@@ -312,6 +313,7 @@ export type DBObjective = {
   sectorId: number | null;
   objectiveIndex: number;
   last_updated: string;
+  parsed_text: string;
 };
 
 export type FullParsedAssignment = {
@@ -358,3 +360,15 @@ export type RegionView = {
 };
 
 export type TableNames = keyof Database["public"]["Tables"];
+
+export type DBPlanet = {
+  id: number;
+  name: string;
+  disabled: boolean;
+  sector: number;
+  player_count: number;
+  current_faction: number;
+  latest_enemy: number | null;
+  latest_regen: number;
+  current_event: number | null;
+};
