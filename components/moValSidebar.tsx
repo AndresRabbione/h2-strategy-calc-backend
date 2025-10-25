@@ -108,7 +108,7 @@ export default function MOValSidebar({
     if (tableName === "item" || tableName === "enemy") {
       const { error, data } = await supabase
         .from(tableName)
-        .insert([
+        .upsert([
           {
             id: id,
             name: nameValue,
@@ -131,7 +131,7 @@ export default function MOValSidebar({
     } else {
       const { error, data } = await supabase
         .from(tableName)
-        .insert([{ id: id, name: nameValue }])
+        .upsert([{ id: id, name: nameValue }])
         .select()
         .single();
       if (error) {
