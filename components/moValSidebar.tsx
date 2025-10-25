@@ -29,7 +29,6 @@ export default function MOValSidebar({
 }) {
   const [nameValue, setName] = useState(valObj[0]?.name || "");
   const [objChanged, setChanged] = useState(false);
-  const [selectedTable, setTable] = useState(tableName);
   const [isMounted, setMounted] = useState(false);
   const [isPending, setPending] = useState(false);
   const [selectedDifficulties, setDifficulties] = useState<{
@@ -67,7 +66,7 @@ export default function MOValSidebar({
 
     let updateData: Record<string, number | string> = { name: nameValue };
 
-    if (selectedTable === "item" || selectedTable === "enemy") {
+    if (tableName === "item" || tableName === "enemy") {
       updateData = {
         ...updateData,
         min_difficulty: selectedDifficulties.minDifficulty,
@@ -76,7 +75,7 @@ export default function MOValSidebar({
     }
 
     const { error, data } = await supabase
-      .from(selectedTable)
+      .from(tableName)
       .update(updateData)
       .eq("id", id)
       .select();
@@ -106,9 +105,9 @@ export default function MOValSidebar({
     setPending(true);
     const supabase = createClient();
 
-    if (selectedTable === "item" || selectedTable === "enemy") {
+    if (tableName === "item" || tableName === "enemy") {
       const { error, data } = await supabase
-        .from(selectedTable)
+        .from(tableName)
         .insert([
           {
             id: id,
@@ -131,7 +130,7 @@ export default function MOValSidebar({
       }
     } else {
       const { error, data } = await supabase
-        .from(selectedTable)
+        .from(tableName)
         .insert([{ id: id, name: nameValue }])
         .select()
         .single();
@@ -197,25 +196,6 @@ export default function MOValSidebar({
               <span className="pl-2">ID</span>
               <span className="border-1 p-2 rounded-md">{id}</span>
             </div>
-            {tableName === "item" ? (
-              <div className="flex flex-col gap-0.5">
-                <label className="pl-2" htmlFor="itemTypeSelect">
-                  Table
-                </label>
-                <select
-                  className="border-1 p-2 text-start rounded-md items-start justify-start placeholder-gray-400 bg-gray-800"
-                  name="itemTypeSelect"
-                  id="itemTypeSelect"
-                  value={selectedTable}
-                  onChange={(event) =>
-                    setTable(event.target.value as TableNames)
-                  }
-                >
-                  <option value="item">Item</option>
-                  <option value="stratagem">Stratagem</option>
-                </select>
-              </div>
-            ) : null}
             <div className="flex flex-col gap-0.5">
               <span className="pl-2">Name</span>
               <input
@@ -232,7 +212,7 @@ export default function MOValSidebar({
                 value={nameValue}
               />
             </div>
-            {selectedTable === "item" || selectedTable === "enemy" ? (
+            {tableName === "item" || tableName === "enemy" ? (
               <div className="flex flex-col gap-0.5">
                 <label htmlFor="minDifficultySelect" className="pl-2">
                   Minimum Difficulty
@@ -258,7 +238,7 @@ export default function MOValSidebar({
                 </select>
               </div>
             ) : null}
-            {selectedTable === "item" || selectedTable === "enemy" ? (
+            {tableName === "item" || tableName === "enemy" ? (
               <div className="flex flex-col gap-0.5">
                 <label htmlFor="maxDifficultySelect" className="pl-2">
                   Maximum Difficulty

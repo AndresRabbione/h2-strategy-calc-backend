@@ -27,6 +27,7 @@ export default async function RawAssingmentBody({
           { timeZone: "UTC" }
         ) + " (UTC)"}
       </h2>
+      <p>{assignment.setting.overrideBrief}</p>
 
       <div className="flex flex-col xl:flex-row xl:justify-center xl:divide-x-2 xl:divide-gray-50">
         {assignment.setting.tasks.map(async (task, taskIndex) => {

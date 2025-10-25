@@ -385,7 +385,7 @@ export async function parseAssignmentAndRecord(
   const progress = assignment.progress;
   const objectives: Objective[] = [];
   const dbObjective: DBObjectiveInsert[] = [];
-  const parser = new MOParser();
+  const parser = new MOParser(supabase);
 
   for (let i = 0; i < progress.length; i++) {
     const parsedObj = await parser.getParsedObjective(
@@ -407,7 +407,6 @@ export async function parseAssignmentAndRecord(
         totalAmount: parsedObj.getTotalAmount(),
         itemId: parsedObj.getItemId(),
         enemyProgress: parsedObj.getEnemyProgress(),
-        stratagemId: parsedObj.getStratagemId(),
         difficulty: parsedObj.getDifficulty(),
         sectorId: parsedObj.getTargetedSector(),
         objectiveIndex: i,

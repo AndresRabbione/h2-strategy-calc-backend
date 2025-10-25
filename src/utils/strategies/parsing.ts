@@ -1,8 +1,6 @@
 import {
   Assignment,
-  EnemyIds,
   FactionIDs,
-  ItemIds,
   ObjectiveTypes,
   ParsedAssignment,
   Planet,
@@ -19,8 +17,15 @@ import {
   PlanetObjective,
 } from "../objectives/classes";
 import { createClient } from "../supabase/server";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { Database } from "../../../database.types";
 
 export class MOParser {
+  supabase: SupabaseClient<Database>;
+  constructor(supabaseClient: SupabaseClient<Database>) {
+    this.supabase = supabaseClient;
+  }
+
   public async hasSpecifiedPlanets(
     assignments: ParsedAssignment[]
   ): Promise<boolean> {
@@ -101,17 +106,18 @@ export class MOParser {
     );
   }
 
-  private parseKillObj(
+  private async parseKillObj(
     objective: Task,
     progress: number,
     allPlanets: Planet[]
-  ): Objective {
+  ): Promise<Objective> {
     let complete: boolean = false;
     let faction: FactionIDs | null = null;
-    let enemy: EnemyIds | null = null;
+    let enemy: number | null = null;
     let planet: Planet | null = null;
     let sector: number | null = null;
     let total: number = 0;
+    let item: number | null = null;
 
     for (let i = 0; i < objective.values.length; i++) {
       switch (objective.valueTypes[i]) {
@@ -125,6 +131,9 @@ export class MOParser {
         case ValueTypes.ENEMY:
           enemy = objective.values[i];
           break;
+        case ValueTypes.ITEM:
+          item = objective.values[i];
+          break;
         case ValueTypes.TARGET_ID:
           let auxValue = 0;
           for (const type of objective.valueTypes) {
@@ -136,6 +145,44 @@ export class MOParser {
       }
     }
 
+    if (item) {
+      const { data: DBItem } = await this.supabase
+        .from("item")
+        .select("*")
+        .eq("id", item)
+        .single();
+
+      if (!DBItem) {
+        const { data, error } = await this.supabase
+          .from("item")
+          .insert({ id: item, name: "Unknown" })
+          .select();
+
+        if (!data || error) {
+          item = -1;
+        }
+      }
+    }
+
+    if (enemy && enemy !== 0) {
+      const { data: DBItem } = await this.supabase
+        .from("enemy")
+        .select("*")
+        .eq("id", enemy)
+        .single();
+
+      if (!DBItem) {
+        const { data, error } = await this.supabase
+          .from("enemy")
+          .insert({ id: enemy, name: "Unknown" })
+          .select();
+
+        if (!data || error) {
+          enemy = -1;
+        }
+      }
+    }
+
     return new KillObjective(
       faction,
       enemy,
@@ -144,18 +191,19 @@ export class MOParser {
       total,
       complete,
       sector,
-      -1
+      -1,
+      item
     );
   }
 
-  private parseCollectionObj(
+  private async parseCollectionObj(
     objective: Task,
     progress: number,
     allPlanets: Planet[]
-  ): Objective {
+  ): Promise<Objective> {
     let complete: boolean = false;
     let faction: FactionIDs | null = null;
-    let item: ItemIds = ItemIds.COMMON;
+    let item: number = -1;
     let planet: Planet | null = null;
     let total: number = 0;
     let sector: number | null = null;
@@ -185,6 +233,23 @@ export class MOParser {
           planet = auxValue === 1 ? allPlanets[objective.values[i]] : null;
           sector = auxValue === 2 ? objective.values[i] : null;
           break;
+      }
+    }
+
+    const { data: DBItem } = await this.supabase
+      .from("item")
+      .select("*")
+      .eq("id", item)
+      .single();
+
+    if (!DBItem) {
+      const { error, data } = await this.supabase
+        .from("item")
+        .insert({ id: item, name: "Unknown" })
+        .select();
+
+      if (error || !data) {
+        item = -1;
       }
     }
 
@@ -251,10 +316,10 @@ export class MOParser {
         return this.parseOperationObj(objective, progress, allPlanets);
         break;
       case ObjectiveTypes.COLLECT:
-        return this.parseCollectionObj(objective, progress, allPlanets);
+        return await this.parseCollectionObj(objective, progress, allPlanets);
         break;
       case ObjectiveTypes.KILL:
-        return this.parseKillObj(objective, progress, allPlanets);
+        return await this.parseKillObj(objective, progress, allPlanets);
         break;
       case ObjectiveTypes.LIBERATE:
         return this.parsePlanetObj(objective, progress, allPlanets);

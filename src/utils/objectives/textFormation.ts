@@ -7,7 +7,6 @@ import { parseItemId } from "../parsing/items";
 import { getFactionColorFromId } from "../parsing/colors";
 import { getFactionNameFromId } from "../parsing/factions";
 import { parseSectorId } from "../parsing/sectors";
-import { parseStratagemId } from "../parsing/stratagems";
 import { parseEnemyId } from "../parsing/enemy";
 
 export async function getObjectiveText(
@@ -238,15 +237,14 @@ export async function getObjectiveText(
         });
       }
 
-      const strategem = objective.stratagemId
+      const item = objective.itemId
         ? [
             { text: "using the", color: mainTextColor, joiner: " " },
             {
-              text: await parseStratagemId(objective.stratagemId),
+              text: await parseItemId(objective.itemId),
               color: highlightTextColor,
               joiner: " ",
             },
-            { text: "stratagem", color: mainTextColor, joiner: " " },
           ]
         : [];
 
@@ -263,7 +261,7 @@ export async function getObjectiveText(
           color: getFactionColorFromId(enemy.faction, false),
           joiner: " ",
         },
-      ].concat(source, strategem);
+      ].concat(source, item);
     default:
       return [{ text: "Unknown Objective", color: mainTextColor, joiner: "" }];
   }

@@ -95,7 +95,9 @@ export default function RawObjValuePair({
                 currentValueType === ValueTypes.ITEM))
           }
           className={`font-light ${
-            valueState.length === 0 ? "text-yellow-400" : ""
+            valueState.length === 0 || valueState[0].name === "Unknown"
+              ? "text-yellow-400"
+              : ""
           } ${
             currentValueType === ValueTypes.AMOUNT ||
             (auxValue === 0 &&
@@ -106,7 +108,9 @@ export default function RawObjValuePair({
           }`}
         >
           <i>
-            {valueState.length > 0 ? valueState[0].name : `${value} ! Unkwown`}
+            {valueState.length > 0 && valueState[0].name !== "Unknown"
+              ? valueState[0].name
+              : `${value} ! Unkwown`}
           </i>
         </button>
         {isValueOpen ? (

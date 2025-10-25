@@ -38,18 +38,11 @@ export async function parseValueType(
       //FIXME: Pray for no duplicate IDs or we're totally fucked
       // value type 6 seems to indiacte if an item or strat is needed
       // but not which one, so this hack is necessary
-      let { data: stratagem } = await supabase
-        .from("stratagem")
+      const { data: item } = await supabase
+        .from("item")
         .select("*")
         .eq("id", value);
-      if (!stratagem || stratagem.length === 0) {
-        const { data: item } = await supabase
-          .from("item")
-          .select("*")
-          .eq("id", value);
-        stratagem = item;
-      }
-      return stratagem ?? [];
+      return item ?? [];
       break;
     case ValueTypes.TARGET_ID:
       const { data: planet } = await supabase
@@ -208,7 +201,8 @@ export async function getNumberOfUnparsedValues(
     if (!seenPairs.has(key)) {
       seenPairs.add(key);
       const parsedValue = await parseValueType(valueType, value, auxValue);
-      if (parsedValue.length === 0) count++;
+      if (parsedValue.length === 0 || parsedValue[0].name === "Unknown")
+        count++;
     }
   }
 

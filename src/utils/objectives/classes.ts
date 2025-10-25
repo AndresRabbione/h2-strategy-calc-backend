@@ -2,7 +2,6 @@ import {
   EnemyIds,
   FactionIDs,
   Factions,
-  ItemIds,
   ObjectiveTypes,
   Planet,
 } from "@/lib/typeDefinitions";
@@ -24,10 +23,6 @@ export abstract class Objective {
   }
 
   public getDifficulty(): number | null {
-    return null;
-  }
-
-  public getStratagemId(): number | null {
     return null;
   }
 
@@ -119,7 +114,7 @@ export class KillObjective extends Objective {
   sector: number | null;
   progress: number;
   totalAmount: number;
-  stratagem: number | null;
+  item: number | null;
 
   constructor(
     faction: FactionIDs | null = null,
@@ -130,7 +125,7 @@ export class KillObjective extends Objective {
     complete: boolean,
     sector: number | null = null,
     id: number,
-    stratagem: number | null = null
+    item: number | null = null
   ) {
     super(complete, ObjectiveTypes.KILL, id);
     this.faction = faction;
@@ -140,7 +135,7 @@ export class KillObjective extends Objective {
     this.progress = progress;
     this.sector = sector;
     this.id = id;
-    this.stratagem = stratagem;
+    this.item = item;
   }
 
   public getTotalAmount(): number | null {
@@ -170,12 +165,16 @@ export class KillObjective extends Objective {
   public getTargetPlanet(): Planet | null {
     return this.planet;
   }
+
+  public getItemId(): number | null {
+    return this.item;
+  }
 }
 
 export class CollectionObjective extends Objective {
   faction: FactionIDs | null;
   planet: Planet | null;
-  item: ItemIds;
+  item: number;
   progress: number;
   totalAmount: number;
   sectorId: number | null;
@@ -184,7 +183,7 @@ export class CollectionObjective extends Objective {
     completed: boolean,
     faction: FactionIDs | null = null,
     planet: Planet | null = null,
-    item: ItemIds,
+    item: number,
     progress: number,
     total: number,
     sectorId: number | null = null,
