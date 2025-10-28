@@ -363,7 +363,7 @@ export function generateStepsFromTargets(
       const dependantStep = {
         planetId: dependant.targetId,
         playerPercentage: dependantOffense,
-        strategyId: strategyId,
+        strategyId,
         created_at: now,
         progress: dependantProgress,
         limit_date: new Date(
@@ -412,9 +412,9 @@ export function generateStepsFromTargets(
       const leftoverStep: StrategyStepInsert = {
         planetId: longTermTarget.targetId,
         playerPercentage: playerbasePercentage,
-        strategyId: strategyId,
+        strategyId,
         created_at: now,
-        progress: progress,
+        progress,
         limit_date: new Date(
           Date.now() + longTermTarget.timeRemaining / 3600000
         ).toISOString(),
@@ -422,8 +422,36 @@ export function generateStepsFromTargets(
 
       interimSteps.push(leftoverStep);
     } else {
-      const bestStep = interimSteps[0];
-      bestStep.playerPercentage += playerbasePercentage;
+      if (interimSteps.length > 0) {
+        const bestStep = interimSteps[0];
+        bestStep.playerPercentage += playerbasePercentage;
+      } else {
+        const bestTarget = finalTargets[0];
+
+        const strategyId = getStrategyIdForObjectives(
+          assignments,
+          bestTarget.objectiveIds,
+          rawStrategies
+        );
+
+        const planet = allPlanets[bestTarget.targetId];
+        const progress = calcPlanetProgressPercentage(
+          planet.health,
+          planet.maxHealth,
+          planet.event
+        );
+
+        interimSteps.push({
+          planetId: bestTarget.targetId,
+          playerPercentage: playerbasePercentage,
+          strategyId,
+          created_at: now,
+          progress,
+          limit_date: new Date(
+            Date.now() + bestTarget.timeRemaining / 3600000
+          ).toISOString(),
+        });
+      }
     }
   }
 
