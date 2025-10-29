@@ -625,57 +625,46 @@ export function optimizeRegionAllocation(
   totalPlayerCount: number,
   step: StrategyStepFull
 ): Allocation {
+  const numRegions = planet.regions.length;
+  const totalPower =
+    estimatedPerPlayerImpact *
+    (totalPlayerCount * (step.playerPercentage / 100));
   let bestAlloc: Allocation = {
-    planet:
-      estimatedPerPlayerImpact *
-      (totalPlayerCount * (step.playerPercentage / 100)),
-    regions: Array(planet.regions.length).fill(0),
+    planet: totalPower,
+    regions: Array(numRegions).fill(0),
   };
   let bestTime =
     simulateCompletionTime(planet, bestAlloc, timeHorizon) ?? Infinity;
 
-  if (bestTime === Infinity) {
-    bestTime =
-      simulateCompletionTime(planet, bestAlloc, timeHorizon * 2) ?? Infinity;
+  const increment = Math.max(1, Math.floor(totalPower / 20));
+
+  // Generate all possible allocations (planet + regions = totalPower)
+  function* allocations(
+    remaining: number,
+    idx: number,
+    current: number[]
+  ): Generator<number[]> {
+    if (idx === numRegions) {
+      yield current;
+      return;
+    }
+    if (!planet.regions[idx].isAvailable) {
+      yield* allocations(remaining, idx + 1, [...current, 0]);
+    } else {
+      for (let alloc = 0; alloc <= remaining; alloc += increment) {
+        yield* allocations(remaining - alloc, idx + 1, [...current, alloc]);
+      }
+    }
   }
 
-  let improved = true;
-  while (improved) {
-    improved = false;
-
-    for (let i = 0; i < planet.regions.length; i++) {
-      const currentRegion = planet.regions[i];
-      if (!currentRegion.isAvailable) continue;
-
-      const minNeeded = currentRegion.regenPerSecond * 3600 + 1;
-
-      if (bestAlloc.planet < minNeeded && bestAlloc.regions[i] < minNeeded)
-        continue;
-
-      const chunk = Math.min(
-        bestAlloc.regions[i] >= minNeeded ? 200 : minNeeded,
-        bestAlloc.planet
-      );
-
-      if (chunk <= 0 || chunk > bestAlloc.planet) continue;
-
-      const trial: Allocation = {
-        planet: bestAlloc.planet - chunk,
-        regions: [...bestAlloc.regions],
-      };
-      trial.regions[i] += chunk;
-
-      let time = simulateCompletionTime(planet, trial, timeHorizon);
-
-      if (time === null) {
-        time = simulateCompletionTime(planet, trial, timeHorizon * 1.5);
-      }
-
-      if (time !== null && time < bestTime) {
-        bestTime = time;
-        bestAlloc = trial;
-        improved = true;
-      }
+  for (const regionAlloc of allocations(totalPower, 0, [])) {
+    const planetAlloc = totalPower - regionAlloc.reduce((a, b) => a + b, 0);
+    const alloc: Allocation = { planet: planetAlloc, regions: regionAlloc };
+    const time = simulateCompletionTime(planet, alloc, timeHorizon);
+    console.log(alloc, time);
+    if (time !== null && time < bestTime) {
+      bestTime = time;
+      bestAlloc = alloc;
     }
   }
 
