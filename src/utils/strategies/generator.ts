@@ -33,7 +33,6 @@ type Allocation = {
 export async function generateStrategies(
   supabase: SupabaseClient<Database>
 ): Promise<boolean> {
-  const maxRetries = 3;
   const now = new Date().toISOString();
 
   console.time("Initial fetching");
@@ -43,14 +42,6 @@ export async function generateStrategies(
     .from("assignment")
     .select("*, objective(*)")
     .gte("endDate", now);
-
-  for (let retry = 0; retry < maxRetries && !assignments; retry++) {
-    const { data } = await supabase
-      .from("assignment")
-      .select("*, objective(*)")
-      .gte("endDate", now);
-    assignments = data;
-  }
 
   console.timeEnd("Initial fetching");
 
@@ -64,6 +55,7 @@ export async function generateStrategies(
       assignments?.filter((assignment) => activeIds.includes(assignment.id)) ??
       [];
   } else {
+    console.log("No active assignments found, stopping");
     return true;
   }
 
@@ -94,7 +86,7 @@ export async function generateStrategies(
     supabase
       .from("strategy")
       .select("*, strategyStep(*), dssStep(*)")
-      .in("assignmentId", assignmentIds!),
+      .in("assignmentId", assignmentIds),
     supabase.from("planet").select("id, sector"),
   ]);
 
@@ -143,12 +135,21 @@ export async function generateStrategies(
     );
 
     if (!strategyForAssignment) {
-      const { data: newStrategies } = await supabase
+      const { data: newStrategy, error } = await supabase
         .from("strategy")
         .insert({ assignmentId: assignment.id })
-        .select();
+        .select()
+        .single();
 
-      rawStrategies.push(...(newStrategies ?? []));
+      if (error) {
+        console.warn(
+          `Error creating new strategy for assignment ${assignment.id}`,
+          error
+        );
+      } else {
+        rawStrategies.push(newStrategy);
+        console.log(`New strategy ${newStrategy.id} created`);
+      }
     }
   }
 
@@ -191,19 +192,24 @@ export async function generateStrategies(
     currentStrategySteps
   );
 
-  const [{ data: insertedSteps }, updatedResults] = await Promise.all([
-    supabase.from("strategyStep").insert(newSteps.toInsert).select(),
-    Promise.all(
-      newSteps.toUpdate.map((step) =>
-        supabase
-          .from("strategyStep")
-          .update({ progress: step.progress })
-          .eq("id", step.id)
-          .select()
-          .single()
-      )
-    ),
-  ]);
+  const [{ data: insertedSteps, error: stepInsertError }, updatedResults] =
+    await Promise.all([
+      supabase.from("strategyStep").insert(newSteps.toInsert).select(),
+      Promise.all(
+        newSteps.toUpdate.map((step) =>
+          supabase
+            .from("strategyStep")
+            .update({ progress: step.progress })
+            .eq("id", step.id)
+            .select()
+            .single()
+        )
+      ),
+    ]);
+
+  if (stepInsertError) {
+    console.log(`Error when inserting steps`, stepInsertError);
+  }
 
   const updatedSteps = updatedResults
     .map((result) => result.data)
@@ -222,12 +228,14 @@ export async function generateStrategies(
     supabase
   );
 
-  const { error } = await supabase
+  const { error: splitError } = await supabase
     .from("planet_region_split")
     .insert(regionSplits);
 
-  if (error) {
-    console.warn(error);
+  if (splitError) {
+    console.warn(`Error when creating region splits`, splitError);
+  } else {
+    console.log("Region splits created successfully");
   }
 
   console.timeEnd("Region splits");

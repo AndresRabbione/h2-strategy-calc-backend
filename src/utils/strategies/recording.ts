@@ -101,6 +101,7 @@ export async function recordCurrentState(
         now,
         dbPlanets ?? []
       );
+
       hasNewAssignments = true;
       seenAssignments.add(assignment.id32);
     } else {
@@ -131,7 +132,7 @@ export async function recordCurrentState(
     await updateSteps(supabase, parsedAssignment, planets, now);
   }
 
-  const [unrecordedDispatches] = await Promise.all([
+  const [unrecordedDispatches, { error: assignmentError }] = await Promise.all([
     getDispatchesAfterId(lastRecordedDispatch?.id ?? -Infinity),
     supabase
       .from("assignment")
@@ -141,6 +142,15 @@ export async function recordCurrentState(
       })
       .in("id", inactiveAssignmentIds),
   ]);
+
+  if (assignmentError) {
+    console.warn(
+      `Error disabling assignments ${inactiveAssignmentIds}`,
+      assignmentError
+    );
+  } else if (!assignmentError && inactiveAssignmentIds.length > 0) {
+    console.log(`Disabled assignments ${inactiveAssignmentIds}`);
+  }
 
   console.timeEnd("Assignment activity and step progress update");
 
@@ -155,7 +165,14 @@ export async function recordCurrentState(
     snapshots
   );
 
-  await Promise.all([
+  const [
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _snapshots,
+    { error: playerCountError },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _objComplete,
+    { error: impactError },
+  ] = await Promise.all([
     takePlanetSnapshots(supabase, planets, adjacency),
     supabase.from("player_count_record").insert({
       player_count: totalPlayerCount,
@@ -184,11 +201,13 @@ export async function recordCurrentState(
           });
 
         if (eventError) {
-          console.warn(eventError);
+          console.warn(`Error recording event ${planet.event.id}`, eventError);
+        } else {
+          console.log(`Event ${planet.event.id} recorded successfully`);
         }
       }
 
-      const { error } = await supabase
+      const { error: planetError } = await supabase
         .from("planet")
         .update({
           player_count: planet.statistics.playerCount,
@@ -220,13 +239,13 @@ export async function recordCurrentState(
             .eq("id", region.hash);
 
           if (regionError) {
-            console.warn(regionError);
+            console.warn(`Error updating region ${region.name}`, regionError);
           }
         })
       );
 
-      if (error) {
-        console.warn(error);
+      if (planetError) {
+        console.warn(`Error updating ${planet.name} statistics`, planetError);
       }
     }),
     supabase.from("dispatch").upsert(
@@ -244,6 +263,20 @@ export async function recordCurrentState(
       })
     ),
   ]);
+
+  console.log("Planet statistics updated");
+
+  if (playerCountError) {
+    console.warn("Error updating total player count", playerCountError);
+  } else {
+    console.log("Total player count updated successfully");
+  }
+
+  if (impactError) {
+    console.warn("Error updating player impact record", impactError);
+  } else {
+    console.log("Player impact record updated successfully");
+  }
 
   console.timeEnd("Snapshots, objective cleanup, various recording");
 
@@ -295,7 +328,9 @@ export async function updateObjectives(
           .select();
 
         if (error) {
-          console.warn("Insert error: ", error);
+          console.warn("Error updating objective: ", error);
+        } else {
+          console.log(`Updated objective ${objective.id}`);
         }
 
         return data;
@@ -321,7 +356,9 @@ export async function updateObjectives(
           .select();
 
         if (error) {
-          console.warn("Insert error: ", error);
+          console.warn("Error updating objective: ", error);
+        } else {
+          console.log(`Updated objective ${objective.id}`);
         }
 
         return data;
@@ -360,15 +397,27 @@ export async function updateSteps(
     );
 
     if (assignment.is_active) {
-      await supabase
+      const { error } = await supabase
         .from("strategyStep")
         .update({ progress: progress })
         .eq("id", step.id);
+
+      if (error) {
+        console.warn(`Error updating step ${step.id}: `, error);
+      } else {
+        console.log(`Updated step ${step.id}`);
+      }
     } else if (nowMilli <= endDateMilli + 600000 && !assignment.is_active) {
-      await supabase
+      const { error } = await supabase
         .from("strategyStep")
         .update({ progress: progress })
         .eq("id", step.id);
+
+      if (error) {
+        console.warn(`Error cleaning up step ${step.id}: `, error);
+      } else {
+        console.log(`Cleaned up step ${step.id}`);
+      }
     }
   }
 }
@@ -380,7 +429,6 @@ export async function parseAssignmentAndRecord(
   now: string,
   allDBPlanets: DBPlanet[]
 ) {
-  const maxRetries = 3;
   const tasks = assignment.setting.tasks;
   const progress = assignment.progress;
   const objectives: Objective[] = [];
@@ -420,7 +468,7 @@ export async function parseAssignmentAndRecord(
   const endDate = new Date(endTime);
   const startDate = new Date(warStartTime + assignment.startTime * 1000);
 
-  let { data: newAssignment } = await supabase
+  const { error } = await supabase
     .from("assignment")
     .insert({
       id: assignment.id32,
@@ -435,18 +483,11 @@ export async function parseAssignmentAndRecord(
     })
     .select();
 
-  for (let tries = 0; tries < maxRetries && !newAssignment; tries++) {
-    const { data } = await supabase.from("assignment").insert({
-      id: assignment.id32,
-      endDate: endDate.toISOString(),
-      isMajorOrder: assignment.setting.overrideTitle.includes("ORDER"),
-      title: assignment.setting.overrideTitle,
-      brief: assignment.setting.overrideBrief,
-      type: assignment.setting.type,
-      is_decision: assignment.setting.flags === 2,
-      is_active: true,
-    });
-    newAssignment = data;
+  if (!error) {
+    console.log(`Recorded new assignment with id: ${assignment.id32}`);
+  } else {
+    console.warn(`Error recording new assignment ${assignment.id32}`, error);
+    return;
   }
 
   await Promise.all(
@@ -458,10 +499,16 @@ export async function parseAssignmentAndRecord(
       const { data, error } = await supabase
         .from("objective")
         .insert(objective)
-        .select();
+        .select()
+        .single();
 
       if (error) {
-        console.warn("Insert error: ", error);
+        console.warn(
+          `Error creating new objective from assignment ${objective.assignmentId} at index ${objective.objectiveIndex}: `,
+          error
+        );
+      } else {
+        console.log(`Objective ${data.id} created successfully`);
       }
 
       return data;
