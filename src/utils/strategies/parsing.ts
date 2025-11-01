@@ -165,13 +165,13 @@ export class MOParser {
     }
 
     if (enemy && enemy !== 0) {
-      const { data: DBItem } = await this.supabase
+      const { data: DBEnemy } = await this.supabase
         .from("enemy")
         .select("*")
         .eq("id", enemy)
         .single();
 
-      if (!DBItem) {
+      if (!DBEnemy) {
         const { data, error } = await this.supabase
           .from("enemy")
           .insert({ id: enemy, name: "Unknown" })

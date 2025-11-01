@@ -109,7 +109,7 @@ export class PlanetObjective extends Objective {
 
 export class KillObjective extends Objective {
   faction: FactionIDs | null;
-  enemy: EnemyIds | null;
+  enemy: number | null;
   planet: Planet | null;
   sector: number | null;
   progress: number;

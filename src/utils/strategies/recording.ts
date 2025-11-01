@@ -473,7 +473,7 @@ export async function parseAssignmentAndRecord(
     .insert({
       id: assignment.id32,
       endDate: endDate.toISOString(),
-      isMajorOrder: assignment.setting.overrideTitle.includes("ORDER"),
+      isMajorOrder: assignment.setting.overrideTitle.includes("MAJOR"),
       title: assignment.setting.overrideTitle,
       brief: assignment.setting.overrideBrief,
       type: assignment.setting.type,
