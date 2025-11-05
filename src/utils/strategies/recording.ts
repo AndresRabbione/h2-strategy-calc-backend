@@ -585,15 +585,15 @@ export async function finishObjectives(
       assignment.objective.map(async (objective) => {
         const lastUpdateDate = new Date(objective.last_updated);
         const priorBreakpointDate = new Date(
-          assignmentEndDate.getTime() - 60000
-        ); //One minute
+          assignmentEndDate.getTime() - 1200000
+        ); //Twenty minutes
 
         if (
           objective.totalAmount &&
           calcPercentageDifference(
             objective.playerProgress,
             objective.totalAmount
-          ) <= 1 &&
+          ) <= 5 &&
           lastUpdateDate <= priorBreakpointDate
         ) {
           const { data, error } = await supabase
@@ -611,7 +611,7 @@ export async function finishObjectives(
           return data;
         } else if (
           !objective.totalAmount &&
-          100 - objective.playerProgress <= 1 &&
+          100 - objective.playerProgress <= 5 &&
           lastUpdateDate <= priorBreakpointDate
         ) {
           const { data, error } = await supabase

@@ -251,14 +251,16 @@ export function canGenerateStrategies(
   assignments: FullParsedAssignment[]
 ): boolean {
   for (const assignment of assignments) {
-    const isPossible = assignment.objective.some(
-      (objective) =>
-        (objective.factionId && objective.type !== ObjectiveTypes.KILL) ||
-        objective.planetId ||
-        objective.sectorId
-    );
-
-    if (isPossible) return isPossible;
+    if (
+      assignment.objective.some(
+        (objective) =>
+          (objective.factionId && objective.type !== ObjectiveTypes.KILL) ||
+          objective.planetId ||
+          objective.sectorId
+      )
+    ) {
+      return true;
+    }
   }
 
   return false;
