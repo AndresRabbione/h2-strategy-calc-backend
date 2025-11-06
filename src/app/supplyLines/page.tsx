@@ -14,7 +14,7 @@ export default async function SupplyLines({
 
   const limit = 10;
   const awaitedSearchParams = await searchParams;
-  const filter = (awaitedSearchParams.filter as string) ?? "";
+  const search = (awaitedSearchParams.search as string) ?? "";
   const page: number = awaitedSearchParams?.page
     ? Number(awaitedSearchParams.page)
     : 0;
@@ -25,14 +25,14 @@ export default async function SupplyLines({
       currentVerifiedParams.set(key, String(value));
     }
   });
-  currentVerifiedParams.set("filter", filter);
+  currentVerifiedParams.set("search", search);
   currentVerifiedParams.set("page", page.toString());
 
   const { count, data: links } = await supabase
     .from("supplyLineFull")
     .select("*", { count: "exact" })
     .or(
-      `origin_planet_name.ilike.%${filter}%,destination_planet_name.ilike.%${filter}%`
+      `origin_planet_name.ilike.%${search}%,destination_planet_name.ilike.%${search}%`
     )
     .range(limit * page, limit - 1 + limit * page);
 

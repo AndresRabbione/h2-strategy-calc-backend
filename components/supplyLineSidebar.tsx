@@ -285,11 +285,11 @@ export default function SupplyLineSidebar({
                 id="originSelect"
                 value={
                   originState
-                    ? `${originState?.id}-${originState?.name}`
+                    ? `${originState?.id}*${originState?.name}`
                     : "default"
                 }
                 onChange={(event) => {
-                  const formattedValues = event.target.value.split("-");
+                  const formattedValues = event.target.value.split("*");
                   setOrigin({
                     id: Number(formattedValues[0]),
                     name: formattedValues[1],
@@ -308,7 +308,7 @@ export default function SupplyLineSidebar({
                   .map((planet) => (
                     <option
                       key={planet.id}
-                      value={`${planet.id}-${planet.name}`}
+                      value={`${planet.id}*${planet.name}`}
                       disabled={
                         destinationState !== null &&
                         destinationState.id === planet.id
@@ -413,11 +413,11 @@ export default function SupplyLineSidebar({
                 id="destinationSelect"
                 value={
                   destinationState
-                    ? `${destinationState.id}-${destinationState.name}`
+                    ? `${destinationState.id}*${destinationState.name}`
                     : "default"
                 }
                 onChange={(event) => {
-                  const formattedValues = event.target.value.split("-");
+                  const formattedValues = event.target.value.split("*");
                   setDestination({
                     id: Number(formattedValues[0]),
                     name: formattedValues[1],
@@ -436,7 +436,7 @@ export default function SupplyLineSidebar({
                   .map((planet) => (
                     <option
                       key={planet.id}
-                      value={`${planet.id}-${planet.name}`}
+                      value={`${planet.id}*${planet.name}`}
                       disabled={
                         originState !== null && originState.id === planet.id
                       }

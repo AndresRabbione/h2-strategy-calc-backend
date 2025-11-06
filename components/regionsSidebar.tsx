@@ -300,11 +300,12 @@ export default function RegionsSidebar({
                 id="planetSelect"
                 value={
                   planetState
-                    ? `${planetState.id}-${planetState.name}`
+                    ? `${planetState.id}*${planetState.name}`
                     : "default"
                 }
                 onChange={(event) => {
-                  const formattedValues = event.target.value.split("-");
+                  const formattedValues = event.target.value.split("*");
+                  console.log(formattedValues);
                   setPlanet({
                     id: Number(formattedValues[0]),
                     name: formattedValues[1],
@@ -321,8 +322,8 @@ export default function RegionsSidebar({
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map((planet, index) => (
                     <option
-                      key={`${planet.id}-${index}`}
-                      value={`${planet.id}-${planet.name}`}
+                      key={`${planet.id}*${index}`}
+                      value={`${planet.id}*${planet.name}`}
                     >
                       {planet.name}
                     </option>
