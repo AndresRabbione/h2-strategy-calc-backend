@@ -2,6 +2,7 @@ import { getAllAssignments } from "../helldiversAPI/assignments";
 import { Database } from "../../../database.types";
 import {
   Assignment,
+  CostInsert,
   DBObjectiveInsert,
   DBPlanet,
   Factions,
@@ -9,6 +10,9 @@ import {
   ObjectiveTypes,
   Planet,
   PlanetSnapshotInsert,
+  SpaceStationV2,
+  StationStatusInsert,
+  TacticalActionInsert,
   ValueTypes,
 } from "@/lib/typeDefinitions";
 import { Objective } from "../objectives/classes";
@@ -33,6 +37,8 @@ import {
 } from "../helldiversAPI/dispatch";
 import { warStartTime } from "@/lib/constants";
 import { getObjectiveTextMarkup } from "../objectives/textFormation";
+import { stationStrategicDescriptionToPlainText } from "../parsing/spaceStations";
+import { getAllSpaceStations } from "../helldiversAPI/spaceStation";
 
 export async function recordCurrentState(
   supabase: SupabaseClient<Database>
@@ -50,6 +56,7 @@ export async function recordCurrentState(
     { data: lastRecordedDispatch },
     { data: eventIds },
     { data: dbPlanets },
+    spaceStations,
   ] = await Promise.all([
     getAllAssignments(),
     fetchAllPlanets(),
@@ -64,6 +71,7 @@ export async function recordCurrentState(
       .single(),
     supabase.from("planet_event").select("id"),
     supabase.from("planet").select("*").order("id", { ascending: true }),
+    getAllSpaceStations(),
   ]);
 
   if (
@@ -182,72 +190,7 @@ export async function recordCurrentState(
     supabase
       .from("estimated_impact")
       .insert({ impact: estimatedPerPlayerImpact }),
-    ...planets.map(async (planet) => {
-      const factionId = getFactionIdFromName(planet.currentOwner);
-
-      if (planet.event && !flattenedEventIds.includes(planet.event.id)) {
-        const { error: eventError } = await supabase
-          .from("planet_event")
-          .insert({
-            id: planet.event.id,
-            faction: getFactionIdFromName(planet.event.faction),
-            max_health: planet.event.maxHealth,
-            start_time: planet.event.startTime,
-            end_time: planet.event.endTime,
-            progress_per_hour: calcEnemyProgressForEvent(
-              planet.event.startTime,
-              planet.event.endTime
-            ),
-          });
-
-        if (eventError) {
-          console.warn(`Error recording event ${planet.event.id}`, eventError);
-        } else {
-          console.log(`Event ${planet.event.id} recorded successfully`);
-        }
-      }
-
-      const { error: planetError } = await supabase
-        .from("planet")
-        .update({
-          player_count: planet.statistics.playerCount,
-          current_faction: factionId,
-          latest_enemy: factionId,
-          latest_regen: calcPlanetRegenPercentage(
-            planet.regenPerSecond,
-            planet.maxHealth
-          ),
-          current_event: planet.event ? planet.event.id : null,
-        })
-        .eq("id", planet.index);
-
-      await Promise.all(
-        planet.regions.map(async (region) => {
-          const { error: regionError } = await supabase
-            .from("planet_region")
-            .update({
-              latest_regen: calcPlanetRegenPercentage(
-                region.regenPerSecond,
-                region.maxHealth
-              ),
-              current_faction:
-                region.health === 0
-                  ? 1
-                  : getFactionIdFromName(planet.currentOwner),
-              latest_player_count: region.players,
-            })
-            .eq("id", region.hash);
-
-          if (regionError) {
-            console.warn(`Error updating region ${region.name}`, regionError);
-          }
-        })
-      );
-
-      if (planetError) {
-        console.warn(`Error updating ${planet.name} statistics`, planetError);
-      }
-    }),
+    updatePlanetStatus(planets, supabase, new Set(flattenedEventIds)),
     supabase.from("dispatch").upsert(
       unrecordedDispatches.map((dispatch) => {
         const dispatchText = sanitizeDispatchMessage(dispatch.message);
@@ -262,6 +205,7 @@ export async function recordCurrentState(
         };
       })
     ),
+    updateSpaceStationsStatus(spaceStations ?? [], supabase),
   ]);
 
   console.log("Planet statistics updated");
@@ -638,4 +582,214 @@ export function calcPercentageDifference(
   total: number
 ): number {
   return ((total - progress) / total) * 100;
+}
+
+export async function updateSpaceStationsStatus(
+  spaceStations: SpaceStationV2[],
+  supabase: SupabaseClient<Database>
+) {
+  const { data: dbStations, error: stationsError } = await supabase
+    .from("station_status")
+    .select("*, tacticalAction(*, tactical_action_cost(*))")
+    .in(
+      "id",
+      spaceStations.map((station) => station.id32)
+    );
+
+  if (stationsError || !dbStations) {
+    console.warn("Error fetching Space Stations from DB", stationsError);
+    return;
+  }
+
+  const knownStations = new Set<number>(dbStations.map((s) => s.id));
+
+  const stationsToUpdate: StationStatusInsert[] = [];
+  const actionsToUpdate: Partial<TacticalActionInsert>[] = [];
+  const costsToUpdate: Partial<CostInsert>[] = [];
+
+  for (const station of spaceStations) {
+    if (!knownStations.has(station.id32)) continue;
+
+    stationsToUpdate.push({
+      id: station.id32,
+      current_planet: station.planet.index,
+      election_end: station.electionEnd,
+    });
+
+    for (const action of station.tacticalActions) {
+      actionsToUpdate.push({
+        id: action.id32,
+        status: action.status,
+        status_expire_time: action.statusExpire,
+      });
+
+      for (const cost of action.costs) {
+        costsToUpdate.push({
+          id: cost.id,
+          current_amount: cost.currentValue,
+          delta_per_second: cost.deltaPerSecond,
+        });
+      }
+    }
+  }
+
+  await Promise.all([
+    stationsToUpdate.length &&
+      supabase.from("station_status").upsert(stationsToUpdate),
+
+    actionsToUpdate.length &&
+      Promise.all(
+        actionsToUpdate.map((action) =>
+          supabase.from("tacticalAction").update(action).eq("id", action.id!)
+        )
+      ),
+
+    costsToUpdate.length &&
+      Promise.all(
+        costsToUpdate.map((cost) =>
+          supabase.from("tactical_action_cost").update(cost).eq("id", cost.id!)
+        )
+      ),
+  ]);
+
+  const unknownStations = spaceStations.filter(
+    (station) => !knownStations.has(station.id32)
+  );
+
+  if (unknownStations.length > 0) {
+    await recordNewSpaceStations(unknownStations, supabase);
+  }
+}
+
+export async function recordNewSpaceStations(
+  spaceStations: SpaceStationV2[],
+  supabase: SupabaseClient<Database>
+) {
+  const stationsToInsert: StationStatusInsert[] = spaceStations.map(
+    (station) => ({
+      id: station.id32,
+      current_planet: station.planet.index,
+      election_end: station.electionEnd,
+    })
+  );
+
+  const { error } = await supabase
+    .from("station_status")
+    .insert(stationsToInsert)
+    .select();
+  if (error) {
+    console.warn(`Error creating new stations: `, error);
+    return;
+  }
+
+  const actionsToInsert: TacticalActionInsert[] = [];
+  const costsToInsert: CostInsert[] = [];
+
+  for (const station of spaceStations) {
+    for (const action of station.tacticalActions) {
+      actionsToInsert.push({
+        id: action.id32,
+        name: action.name,
+        status: action.status,
+        description: action.description,
+        tactical_description: stationStrategicDescriptionToPlainText(
+          action.strategicDescription
+        ),
+        status_expire_time: action.statusExpire,
+        station_id: station.id32,
+      });
+
+      for (const cost of action.costs) {
+        costsToInsert.push({
+          id: cost.id,
+          action_id: action.id32,
+          item_id: cost.itemMixId,
+          amount_required: cost.targetValue,
+          current_amount: cost.currentValue,
+          delta_per_second: cost.deltaPerSecond,
+        });
+      }
+    }
+  }
+
+  await Promise.all([
+    actionsToInsert.length &&
+      supabase.from("tacticalAction").insert(actionsToInsert),
+    costsToInsert.length &&
+      supabase.from("tactical_action_cost").insert(costsToInsert),
+  ]);
+}
+
+export async function updatePlanetStatus(
+  allPlanets: Planet[],
+  supabase: SupabaseClient<Database>,
+  eventIds: Set<number>
+) {
+  await Promise.all(
+    allPlanets.map(async (planet) => {
+      const factionId = getFactionIdFromName(planet.currentOwner);
+      const event = planet.event;
+
+      if (event && !eventIds.has(event.id)) {
+        const { error } = await supabase.from("planet_event").insert({
+          id: event.id,
+          faction: getFactionIdFromName(event.faction),
+          max_health: event.maxHealth,
+          start_time: event.startTime,
+          end_time: event.endTime,
+          progress_per_hour: calcEnemyProgressForEvent(
+            event.startTime,
+            event.endTime
+          ),
+        });
+
+        if (error) {
+          console.warn(`Error recording event ${event.id}`, error);
+        } else {
+          console.log(`Event ${event.id} recorded successfully`);
+        }
+      }
+
+      const { error: planetError } = await supabase
+        .from("planet")
+        .update({
+          player_count: planet.statistics.playerCount,
+          current_faction: factionId,
+          latest_enemy: factionId,
+          latest_regen: calcPlanetRegenPercentage(
+            planet.regenPerSecond,
+            planet.maxHealth
+          ),
+          current_event: event?.id ?? null,
+        })
+        .eq("id", planet.index);
+
+      if (planetError) {
+        console.warn(`Error updating ${planet.name} statistics`, planetError);
+      }
+
+      // Region updates
+      await Promise.all(
+        planet.regions.map(async (region) => {
+          const latestRegen = calcPlanetRegenPercentage(
+            region.regenPerSecond,
+            region.maxHealth
+          );
+
+          const { error } = await supabase
+            .from("planet_region")
+            .update({
+              latest_regen: latestRegen,
+              current_faction: region.health === 0 ? 1 : factionId,
+              latest_player_count: region.players,
+            })
+            .eq("id", region.hash);
+
+          if (error) {
+            console.warn(`Error updating region ${region.name}`, error);
+          }
+        })
+      );
+    })
+  );
 }

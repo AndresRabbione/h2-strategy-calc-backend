@@ -10,7 +10,7 @@ export type Cost = {
   maxDonationPeriodSeconds: number;
 };
 
-export type TacticalAction = {
+export type TacticalActionRaw = {
   id32: number;
   mediaId32: number;
   name: string;
@@ -23,6 +23,18 @@ export type TacticalAction = {
   activeEffectIds: number[];
 };
 
+export type TacticalActionV2 = {
+  id32: number;
+  mediaId32: number;
+  name: string;
+  description: string;
+  strategicDescription: string;
+  status: number;
+  statusExpire: string;
+  costs: Cost[];
+  effectIds: number[];
+};
+
 export type SpaceStationRaw = {
   id32: number;
   planetIndex: number;
@@ -30,7 +42,7 @@ export type SpaceStationRaw = {
   currentElectionId: string;
   currentElectionEndWarTime: number;
   flags: 1;
-  tacticalActions: TacticalAction[];
+  tacticalActions: TacticalActionRaw[];
 };
 
 export type SpaceStationV2 = {
@@ -38,7 +50,7 @@ export type SpaceStationV2 = {
   planet: Planet;
   electionEnd: string;
   flags: number;
-  tacticalActions: TacticalAction[];
+  tacticalActions: TacticalActionV2[];
 };
 
 export type Reward = {
@@ -234,8 +246,8 @@ export type ParsedAssignment = {
 
 export type DSSStep = {
   movementTarget: number;
-  currentActiveAction: TacticalAction | null;
-  actionToActivate: TacticalAction | null;
+  currentActiveAction: TacticalActionV2 | null;
+  actionToActivate: TacticalActionV2 | null;
 };
 
 export type StrategyStepInsert = {
@@ -369,4 +381,29 @@ export type DBPlanet = {
   latest_enemy: number | null;
   latest_regen: number;
   current_event: number | null;
+};
+
+export type StationStatusInsert = {
+  id: number;
+  current_planet: number;
+  election_end: string;
+};
+
+export type TacticalActionInsert = {
+  id: number;
+  status: number;
+  status_expire_time: string;
+  name: string;
+  description: string;
+  tactical_description: string;
+  station_id: number;
+};
+
+export type CostInsert = {
+  id: string;
+  current_amount: number;
+  delta_per_second: number;
+  action_id: number;
+  item_id: number;
+  amount_required: number;
 };
