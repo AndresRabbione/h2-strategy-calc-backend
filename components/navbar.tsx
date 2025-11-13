@@ -112,7 +112,7 @@ export default function Navbar() {
           </Link>
 
           <Link
-            href={"/supplyLines"}
+            href={"/supplyLines/flow"}
             className="hover:bg-[#4a4a4b] p-1 rounded"
           >
             Supply Lines

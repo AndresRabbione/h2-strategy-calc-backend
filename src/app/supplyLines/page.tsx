@@ -4,6 +4,7 @@ import SupplyLineContainer from "../../../components/supplyLineContainer";
 import { createClient } from "@/utils/supabase/server";
 import Pagination from "../../../components/pagination";
 import SearchBar from "../../../components/searchBar";
+import Link from "next/link";
 
 export default async function SupplyLines({
   searchParams,
@@ -39,7 +40,13 @@ export default async function SupplyLines({
   return (
     <div className="h-full flex flex-col min-h-screen">
       <section className="px-6 py-10  flex flex-col">
-        <h1 className="text-center pb-4 text-3xl font-bold">Supply Lines</h1>
+        <div>
+          <h1 className="text-center pb-4 text-3xl font-bold">Supply Lines</h1>
+          <p className="">
+            Warning: This page is deprecated, please use{" "}
+            <Link href={"/supplyLines/flow"}>this page</Link> instead.
+          </p>
+        </div>
         <div className="bg-gray-700 flex flex-col">
           <div className="flex flex-col md:flex-row md:justify-between w-full">
             <Pagination
