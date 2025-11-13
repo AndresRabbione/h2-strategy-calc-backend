@@ -407,3 +407,9 @@ export type CostInsert = {
   item_id: number;
   amount_required: number;
 };
+
+export type SupplyLineInsert = {
+  planetId: number;
+  linkedPlanetId: number;
+  bidirectional: boolean;
+};

@@ -463,7 +463,7 @@ export async function parseAssignmentAndRecord(
 export async function takePlanetSnapshots(
   supabase: SupabaseClient<Database>,
   allPlanets: Planet[],
-  adjacencyMap: Map<number, DBLinks>
+  adjacencyMap: Map<number, DBLinks[]>
 ): Promise<void> {
   const rowsToInsert: PlanetSnapshotInsert[] = [];
   const now = new Date().toISOString();

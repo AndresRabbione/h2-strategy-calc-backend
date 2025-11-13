@@ -149,7 +149,7 @@ export async function findGambitForPlanet(planetId: number): Promise<Attack> {
 
 export function getAttackersForPlanet(
   planet: Planet,
-  supplyLines: Map<number, DBLinks>,
+  supplyLines: Map<number, DBLinks[]>,
   allPlanets: Planet[]
 ): Planet[] {
   const attackers: Planet[] = [];

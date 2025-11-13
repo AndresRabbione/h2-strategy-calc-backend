@@ -11,7 +11,7 @@ export type DBLinks = {
   origin_planet_name: string | null;
   planetId: number | null;
   supply_line_id: number | null;
-}[];
+};
 
 export class PlanetRouter {
   /**
@@ -38,10 +38,10 @@ export class PlanetRouter {
    */
   public async buildAdjacencyMap(
     supabase: SupabaseClient<Database>
-  ): Promise<Map<number, DBLinks>> {
+  ): Promise<Map<number, DBLinks[]>> {
     const { data: links } = await supabase.from("supplyLineFull").select("*");
 
-    const adjacency = new Map<number, DBLinks>();
+    const adjacency = new Map<number, DBLinks[]>();
     if (!links) return adjacency;
 
     for (const link of links) {
@@ -74,7 +74,7 @@ export class PlanetRouter {
    */
   private getAllRoutesDFS(
     startingPlanet: Planet,
-    adjacency: Map<number, DBLinks>,
+    adjacency: Map<number, DBLinks[]>,
     allPlanets: Planet[],
     visited: Set<number> = new Set(),
     currentRoute: Planet[] = [],
@@ -137,7 +137,7 @@ export class PlanetRouter {
   public findShortestRoute(
     planet: Planet,
     allPlanets: Planet[],
-    adjacency: Map<number, DBLinks>
+    adjacency: Map<number, DBLinks[]>
   ): Planet[] {
     if (planet.currentOwner === Factions.HUMANS) {
       return [];

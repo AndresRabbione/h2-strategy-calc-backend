@@ -42,7 +42,7 @@ export type UnvalidatedTargeting = {
 export function getAllTargetsForAssignment(
   assignment: FullParsedAssignment,
   planets: Planet[],
-  adjacencyMap: Map<number, DBLinks>,
+  adjacencyMap: Map<number, DBLinks[]>,
   sectors: { id: number; sector: number }[],
   foundTargets: Map<number, Set<number>>
 ): void {
@@ -211,7 +211,7 @@ function addTarget(
 export function getPlanetDefenseTargets(
   objective: DBObjective,
   allPlanets: Planet[],
-  adjacencyMap: Map<number, DBLinks>
+  adjacencyMap: Map<number, DBLinks[]>
 ): Planet[] {
   const target = allPlanets[objective.planetId!];
   const attackers = getAttackersForPlanet(target, adjacencyMap, allPlanets);
@@ -229,7 +229,7 @@ export function getPlanetLiberationTargets(
   objective: DBObjective,
   allPlanets: Planet[],
   planetRouter: PlanetRouter,
-  adjacencyMap: Map<number, DBLinks>
+  adjacencyMap: Map<number, DBLinks[]>
 ): Planet[] {
   const target = allPlanets[objective.planetId!];
   const route = planetRouter.findShortestRoute(
@@ -254,7 +254,7 @@ export function getHoldOrDefendTargets(
   objective: DBObjective,
   allPlanets: Planet[],
   planetRouter: PlanetRouter,
-  adjacencyMap: Map<number, DBLinks>
+  adjacencyMap: Map<number, DBLinks[]>
 ): Planet[] {
   const target = allPlanets[objective.planetId!];
   if (target.currentOwner !== Factions.HUMANS) {
@@ -283,7 +283,7 @@ export function getHoldOrDefendTargets(
 export function getDefendAmountTargets(
   objective: DBObjective,
   allPlanets: Planet[],
-  adjacencyMap: Map<number, DBLinks>,
+  adjacencyMap: Map<number, DBLinks[]>,
   sectors: { id: number; sector: number }[]
 ): Planet[] {
   const filteredPlanets = allPlanets.filter((planet) => planet.event !== null);
@@ -323,7 +323,7 @@ export function getFinalTargetList(
   targetList: Map<number, Set<number>>,
   assignments: FullParsedAssignment[],
   allPlanets: Planet[],
-  adjacencyMap: Map<number, DBLinks>,
+  adjacencyMap: Map<number, DBLinks[]>,
   estimatedPerPlayerImpact: number,
   totalPlayerCount: number
 ): ValidatedTargeting[] {
@@ -471,7 +471,7 @@ export function getFinalLiberationTargets(
   targets: UnvalidatedTargeting[],
   allPlanets: Planet[],
   specifiedTargetId: number,
-  adjacencyMap: Map<number, DBLinks>,
+  adjacencyMap: Map<number, DBLinks[]>,
   remainingTime: number
 ): ValidatedTargeting[] {
   const finalTargets: ValidatedTargeting[] = [];
@@ -595,7 +595,7 @@ export function getFinalHoldOrDefendTargets(
   targets: UnvalidatedTargeting[],
   allPlanets: Planet[],
   specifiedTargetId: number,
-  adjacencyMap: Map<number, DBLinks>,
+  adjacencyMap: Map<number, DBLinks[]>,
   assignmentEndTime: number,
   estimatedPerPlayerImpact: number,
   totalPlayerCount: number
@@ -634,7 +634,7 @@ export function getFinalDefendAmountTargets(
   targets: UnvalidatedTargeting[],
   allPlanets: Planet[],
   amount: number,
-  adjacencyMap: Map<number, DBLinks>,
+  adjacencyMap: Map<number, DBLinks[]>,
   assignmentEndTime: number,
   estimatedPerPlayerImpact: number,
   totalPlayerCount: number
@@ -787,7 +787,7 @@ export function getFinalLiberateMoreTargets(
   allPlanets: Planet[],
   playerProgress: number,
   enemyProgress: number,
-  adjacencyMap: Map<number, DBLinks>,
+  adjacencyMap: Map<number, DBLinks[]>,
   assignmentEndTime: number,
   estimatedPlayerImpact: number,
   totalPlayerCount: number
@@ -930,7 +930,7 @@ function findAttackers(
   targets: UnvalidatedTargeting[],
   specifiedTargetId: number,
   allPlanets: Planet[],
-  adjacencyMap: Map<number, DBLinks>
+  adjacencyMap: Map<number, DBLinks[]>
 ): UnvalidatedTargeting[] {
   const linkedPlanets = adjacencyMap.get(specifiedTargetId);
 
@@ -951,7 +951,7 @@ function findAttackers(
 }
 
 function isPlanetAvailable(
-  adjacencyMap: Map<number, DBLinks>,
+  adjacencyMap: Map<number, DBLinks[]>,
   planetId: number,
   allPlanets: Planet[]
 ): boolean {
@@ -1004,7 +1004,7 @@ export function getTargetsForDecisionAssignment(
   foundTargets: Map<number, Set<number>>,
   planets: Planet[],
   planetRouter: PlanetRouter,
-  adjacencyMap: Map<number, DBLinks>,
+  adjacencyMap: Map<number, DBLinks[]>,
   sectors: { id: number; sector: number }[]
 ) {
   let lowestResistance = Infinity;
