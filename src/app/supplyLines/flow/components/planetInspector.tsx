@@ -1,6 +1,6 @@
 import { Node } from "@xyflow/react";
 import { PlanetNodeData } from "../../hooks/usePlanetGraph";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function PlanetInspector({
   node,
@@ -12,6 +12,8 @@ export default function PlanetInspector({
   isSaving: boolean;
 }) {
   const [disabledState, setDisabled] = useState(node.data.disabled);
+
+  useEffect(() => setDisabled(node.data.disabled), [node]);
 
   return (
     <div>
