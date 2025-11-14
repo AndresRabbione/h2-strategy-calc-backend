@@ -130,10 +130,12 @@ const makeEdges = (supplyLines: PlanetLink[]) =>
       source: `${link.planetId}`,
       target: `${link.linkedPlanetId}`,
       markerEnd: {
-        type: MarkerType.ArrowClosed,
+        type: link.bidirectional ? MarkerType.ArrowClosed : MarkerType.Arrow,
         width: 16,
         height: 10,
       },
+      interactionWidth: 25,
+      selectable: true,
       data: {
         supply_line_id: link.supply_line_id,
         destination_disabled: link.destination_disabled,
@@ -220,7 +222,15 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
         id: `edge*${dbPayload.planetId}*${dbPayload.linkedPlanetId}`,
         source: `${dbPayload.planetId}`,
         target: `${dbPayload.linkedPlanetId}`,
-        markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 10 },
+        markerEnd: {
+          type: dbPayload.bidirectional
+            ? MarkerType.ArrowClosed
+            : MarkerType.Arrow,
+          width: 16,
+          height: 10,
+        },
+        interactionWidth: 25,
+        selectable: true,
         data: dbPayload,
         style: { strokeWidth: 2 },
         type: "link",
@@ -297,7 +307,15 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
           id: `edge*${dbPayload.planetId}*${dbPayload.linkedPlanetId}`,
           source: `${dbPayload.planetId}`,
           target: `${dbPayload.linkedPlanetId}`,
-          markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 10 },
+          markerEnd: {
+            type: dbPayload.bidirectional
+              ? MarkerType.ArrowClosed
+              : MarkerType.Arrow,
+            width: 16,
+            height: 10,
+          },
+          interactionWidth: 25,
+          selectable: true,
           data: dbPayload,
           style: { strokeWidth: 2 },
           type: "link",
@@ -413,7 +431,15 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
         id: `edge*${deletedLink.planetId}*${deletedLink.linkedPlanetId}`,
         source: `${deletedLink.planetId}`,
         target: `${deletedLink.linkedPlanetId}`,
-        markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 10 },
+        markerEnd: {
+          type: deletedLink.bidirectional
+            ? MarkerType.ArrowClosed
+            : MarkerType.Arrow,
+          width: 16,
+          height: 10,
+        },
+        interactionWidth: 25,
+        selectable: true,
         data: deletedLink,
         style: { strokeWidth: 2 },
         type: "link",

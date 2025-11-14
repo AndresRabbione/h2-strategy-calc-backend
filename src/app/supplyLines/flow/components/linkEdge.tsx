@@ -37,6 +37,13 @@ export default function LinkEdge({
   return (
     <g className="react-flow__edge-path">
       <path
+        d={edgePath}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={25}
+        className="edge-hitbox"
+      />
+      <path
         id={id}
         d={edgePath}
         strokeWidth={isDisabled ? 1 : 2}

@@ -4,7 +4,6 @@ import {
   Background,
   Controls,
   Edge,
-  MarkerType,
   Node,
   NodeMouseHandler,
   OnConnect,
@@ -75,15 +74,13 @@ export default function GraphCanvas({
       onSelectionChange={(selection) =>
         onSelectionChange({ nodes: selection.nodes, edges: selection.edges })
       }
-      // attributionPosition="bottom-left"
-      // connectionLineStyle={{ strokeWidth: 2 }}
-      // connectionLineType={ConnectionLineType.Bezier}
       connectionLineComponent={FloatingConnectionLine}
       nodeTypes={{ planet: PlanetNode }}
       edgeTypes={{ link: LinkEdge }}
       defaultEdgeOptions={{
-        markerEnd: { type: MarkerType.ArrowClosed },
         type: "link",
+        interactionWidth: 25,
+        selectable: true,
       }}
       onNodeDragStop={onNodeDragStop}
     >
