@@ -269,7 +269,7 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
       if (!pendingSource) {
         setPendingSource(node.id);
       } else if (node.id === pendingSource) {
-        setPendingSource(null);
+        alert("A planet can't link to itselft");
       } else {
         const hasExistingConnections = edges.some((edge) => {
           const data = edge.data;
@@ -600,10 +600,6 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
     }
 
     if (operations.length === 0) {
-      setDeletedLinks([]);
-      setInsertLinkIds([]);
-      setUpdatedLinks([]);
-      setUpdatedPlanets([]);
       setSaving(false);
       return { ok: true, summary: { inserted: 0, updated: 0, deleted: 0 } };
     }
@@ -652,6 +648,7 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
       setUpdatedLinks([]);
       setUpdatedPlanets([]);
       setSaving(false);
+
       return {
         ok: true,
         summary: {
@@ -731,11 +728,18 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
     selectedEdge,
     selectedNode,
     addMode,
+    linkIdsToInsert,
+    linksToUpdate,
+    planetsToUpdate,
+    linksToDelete,
+    isSaving,
+    saveReport,
     // setters + handlers
     setRfInstance: onInit,
     setAddMode,
     setNodes,
     setEdges,
+    setReport,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -745,14 +749,7 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
     updateLinkData,
     onNodeDragStop,
     updatePlanetData,
-    linkIdsToInsert,
-    linksToUpdate,
-    planetsToUpdate,
-    linksToDelete,
     restorePriorState,
     finalizeEdits,
-    saveReport,
-    setReport,
-    isSaving,
   } as const;
 }
