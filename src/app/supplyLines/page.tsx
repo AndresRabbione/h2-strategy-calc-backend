@@ -42,9 +42,12 @@ export default async function SupplyLines({
       <section className="px-6 py-10  flex flex-col">
         <div>
           <h1 className="text-center pb-4 text-3xl font-bold">Supply Lines</h1>
-          <p className="">
+          <p className="text-orange-400 text-center">
             Warning: This page is deprecated, please use{" "}
-            <Link href={"/supplyLines/flow"}>this page</Link> instead.
+            <Link className="underline" href={"/supplyLines/flow"}>
+              this page
+            </Link>{" "}
+            instead.
           </p>
         </div>
         <div className="bg-gray-700 flex flex-col">
