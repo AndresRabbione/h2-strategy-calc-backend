@@ -17,8 +17,8 @@ export default function Inspector({
   selectedEdge,
   updateLinkData,
   updatePlanetData,
-  saveReport,
-  setReport,
+  saveReports,
+  setReports,
   isSaving,
 }: {
   selectedElement: {
@@ -29,8 +29,8 @@ export default function Inspector({
   selectedEdge: Edge<Partial<PlanetLink>> | undefined;
   updateLinkData: (edgeId: string, patch: Partial<PlanetLink>) => void;
   updatePlanetData: (nodeId: string, disabled: boolean) => void;
-  saveReport: FinalReport | null;
-  setReport: Dispatch<SetStateAction<FinalReport | null>>;
+  saveReports: FinalReport[];
+  setReports: Dispatch<SetStateAction<FinalReport[]>>;
   isSaving: boolean;
 }) {
   return (
@@ -58,11 +58,16 @@ export default function Inspector({
         ></LinkInspector>
       )}
 
-      {saveReport || isSaving ? (
+      {saveReports.length > 0 || isSaving ? (
         <InspectorReport
-          saveReport={saveReport}
-          onClear={() => setReport(null)}
+          saveReports={saveReports}
+          onClear={() => setReports([])}
           isSaving={isSaving}
+          onSingleClear={(id: number) =>
+            setReports((prev) =>
+              prev.filter((report) => report.createdAt.getTime() !== id)
+            )
+          }
         ></InspectorReport>
       ) : (
         <div className="mt-6 border-t border-gray-800 pt-4 text-sm text-gray-400">

@@ -1,15 +1,18 @@
 import { FinalReport } from "../../hooks/usePlanetGraph";
+import ReportSegment from "./reportSegment";
 
 export default function InspectorReport({
-  saveReport,
+  saveReports,
   onClear,
   isSaving,
+  onSingleClear,
 }: {
-  saveReport: FinalReport | null;
+  saveReports: FinalReport[];
   onClear: () => void;
+  onSingleClear: (id: number) => void;
   isSaving: boolean;
 }) {
-  if (isSaving || !saveReport) {
+  if (isSaving || saveReports.length === 0) {
     return (
       <div className="mt-6 border-t border-gray-800 pt-4">
         <div className="mt-2 space-y-2 flex flex-col items-center justify-center">
@@ -39,90 +42,31 @@ export default function InspectorReport({
     );
   }
 
-  if (saveReport.ok) {
-    return (
-      <div className="mt-6 border-t border-gray-800 pt-4 text-sm">
-        <div className="flex items-center justify-between mb-2">
-          <div className="font-medium text-lg">Report</div>
-          <button
-            onClick={onClear}
-            className="text-sm font-medium px-2 py-1 rounded-md cursor-pointer border border-gray-700 bg-transparent hover:ring hover:ring-gray-800/80 transition-all duration-300 ease-in-out"
-          >
-            Clear
-          </button>
-        </div>
-        <div className="flex flex-col gap-1">
-          <span>All operations completed successfully.</span>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>
-              <strong>Records created:</strong> {saveReport.summary.inserted}
-            </li>
-            <li>
-              <strong>Records updated:</strong> {saveReport.summary.updated}
-            </li>
-            <li>
-              <strong>Records deleted:</strong> {saveReport.summary.deleted}
-            </li>
-          </ul>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="mt-6 border-t border-gray-800 pt-4 text-sm text-gray-400">
+    <div className="mt-6 border-t border-gray-800 pt-4 text-sm">
       <div className="flex items-center justify-between mb-2">
-        <div className="font-medium">Report</div>
+        <div className="font-medium text-lg">Reports</div>
         <button
           onClick={onClear}
-          className="text-sm font-medium px-2 py-1 rounded-md border border-gray-700 bg-transparent"
+          className="text-sm font-medium px-2 py-1 rounded-md cursor-pointer border border-gray-700 bg-transparent hover:ring hover:ring-gray-800/80 transition-all duration-300 ease-in-out"
         >
-          Clear
+          Clear All
         </button>
       </div>
-      <span className="self-center">
-        There were some issues saving your changes.
-      </span>
-      <div className="flex flex-col items-center justify-start gap-3 pl-5 space-y-1">
-        <div className="flex flex-col items-center">
-          <span className="font-medium">Changes rejected</span>
-          <ul className="list-none">
-            {saveReport.report
-              .filter((r) => r.status === "fulfilled")
-              .map((r) => {
-                return (
-                  <li key={r.key}>
-                    {r.name === "Updating Planet"
-                      ? `Node ID ${r.key}:`
-                      : r.name === "Deleting Supply Line"
-                      ? `Supply Line ID ${r.key}: `
-                      : `Edge ID ${r.key}: `}{" "}
-                    {r.supabaseError?.message ?? "Unknown error"}
-                  </li>
-                );
-              })}
-          </ul>
-        </div>
-
-        <div className="flex flex-col items-center">
-          <span>Changes failed</span>
-          <ul className="list-none">
-            {saveReport.report
-              .filter((r) => r.status === "rejected")
-              .map((r) => {
-                return (
-                  <li key={r.key}>
-                    {r.name === "Updating Planet"
-                      ? `Node ID ${r.key}:`
-                      : r.name === "Deleting Supply Line"
-                      ? `Supply Line ID ${r.key}: `
-                      : `Edge ID ${r.key}: `}{" "}
-                    {r.reason}
-                  </li>
-                );
-              })}
-          </ul>
-        </div>
+      <div
+        className="flex flex-col gap-5 items-center justify-start overflow-y-auto max-h-[45vh] [&::-webkit-scrollbar]:w-1
+        [&::-webkit-scrollbar-track]:bg-gray-100
+        [&::-webkit-scrollbar-thumb]:bg-gray-300
+        dark:[&::-webkit-scrollbar-track]:bg-neutral-700
+        dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500"
+      >
+        {saveReports.map((saveReport) => (
+          <ReportSegment
+            key={saveReport.createdAt.getTime()}
+            onClear={onSingleClear}
+            saveReport={saveReport}
+          />
+        ))}
       </div>
     </div>
   );

@@ -15,15 +15,15 @@ function PlanetNode({ id, data, selected }: NodeProps<Node<PlanetNodeData>>) {
         selected
           ? `ring-2 ${
               data.current_faction === FactionIDs.HUMANS
-                ? "ring-super-earth-blue/60"
+                ? "ring-super-earth-blue/50"
                 : data.current_faction === FactionIDs.AUTOMATONS
-                ? "ring-automaton/60"
+                ? "ring-automaton/50"
                 : data.current_faction === FactionIDs.ILLUMINATE
-                ? "ring-illuminate/60"
-                : "ring-terminid/60"
+                ? "ring-illuminate/50"
+                : "ring-terminid/50"
             }`
           : ""
-      } shadow-[0_6px_18px_rgba(0,200,255,0.04)]`}
+      } shadow-[0_6px_18px_rgba(0,200,255,0.04)] transition-all duration-150 ease-in-out`}
       style={{ borderColor: factionColor }}
     >
       <div className="text-sm font-semibold text-cyan-100 text-center">

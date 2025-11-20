@@ -35,7 +35,7 @@ export default function LinkInspector({
       setLoading(false);
     };
 
-    if (edge.data?.supply_line_id) {
+    if (edge.data?.supply_line_id && Object.entries(edge.data!).length <= 3) {
       setLoading(true);
       fetchLinkData();
     } else {

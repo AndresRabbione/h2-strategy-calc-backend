@@ -7,6 +7,7 @@ import GraphCanvas from "./graphCanvas";
 import Inspector from "./inspector";
 import "@xyflow/react/dist/style.css";
 import { GraphDBPlanet } from "../page";
+import useUnsavedWarning from "../../../../../hooks/useUnsavedWarning";
 
 export default function LinkGraphContainer({
   planets,
@@ -16,6 +17,13 @@ export default function LinkGraphContainer({
   supplyLines: DBLinks[];
 }) {
   const graph = usePlanetGraph(planets, supplyLines);
+
+  useUnsavedWarning(
+    graph.linkIdsToInsert.length > 0 ||
+      graph.linksToDelete.length > 0 ||
+      graph.planetsToUpdate.length > 0 ||
+      graph.linksToUpdate.length > 0
+  );
 
   return (
     <div className="flex flex-col bg-gray-900 text-gray-100">
@@ -33,7 +41,7 @@ export default function LinkGraphContainer({
           graph.linksToUpdate.length > 0
         }
         finalizeEdits={graph.finalizeEdits}
-        setReport={graph.setReport}
+        setReports={graph.setReports}
       ></GraphHeader>
 
       <div className="flex flex-1">
