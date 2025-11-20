@@ -89,27 +89,23 @@ export type OperationReport =
 export type FinalReport =
   | {
       ok: true;
+      createdAt: Date;
       summary: { inserted: number; updated: number; deleted: number };
     }
-  | { ok: false; report: OperationReport[] };
+  | { ok: false; createdAt: Date; report: OperationReport[] };
 
 type SupplyLineRow = Database["public"]["Tables"]["supplyLine"]["Row"];
 type PlanetRow = Database["public"]["Tables"]["planet"]["Row"];
 
 const totalScalar = 3200;
-const NODE_W = 140;
-const NODE_H = 64;
 
 const makeNodes = (planets: GraphDBPlanet[]): Node<PlanetNodeData>[] =>
   planets.map((planet) => {
-    const widthScalar = planet.map_x === 0 ? 0 : NODE_W;
-    const heightScalar = planet.map_y === 0 ? 0 : NODE_H;
-
     return {
       id: String(planet.id!),
       position: {
-        x: planet.map_x * (totalScalar + widthScalar),
-        y: -1 * planet.map_y * (totalScalar + heightScalar),
+        x: planet.map_x * totalScalar,
+        y: -1 * planet.map_y * totalScalar,
       },
       data: {
         name: planet.name,
@@ -134,6 +130,9 @@ const makeEdges = (supplyLines: PlanetLink[]) =>
         width: 16,
         height: 10,
       },
+      markerStart: link.bidirectional
+        ? { type: MarkerType.ArrowClosed, width: 10, height: 7 }
+        : undefined,
       interactionWidth: 25,
       selectable: true,
       data: {
@@ -147,10 +146,6 @@ const makeEdges = (supplyLines: PlanetLink[]) =>
       sourceHandle: undefined,
       targetHandle: undefined,
     };
-
-    if (link.bidirectional) {
-      edge.markerStart = { type: MarkerType.ArrowClosed, width: 10, height: 7 };
-    }
 
     return edge;
   });
@@ -188,7 +183,7 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
   const [addMode, setAddMode] = useState(false);
 
   const [pendingSource, setPendingSource] = useState<string | null>(null);
-  const [saveReport, setReport] = useState<FinalReport | null>(null);
+  const [saveReports, setReports] = useState<FinalReport[]>([]);
   const [isSaving, setSaving] = useState(false);
 
   const planetsByID = useMemo(() => {
@@ -393,8 +388,31 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
           return node;
         })
       );
+
+      setEdges((prevEdges) =>
+        prevEdges.map((edge) => {
+          const edgeIdTokens = edge.id.split("*");
+          const isConnected =
+            Number(nodeId) === parseInt(edgeIdTokens[1]) ||
+            Number(nodeId) === parseInt(edgeIdTokens[2]);
+          if (!isConnected) return edge;
+
+          const isOrigin = Number(nodeId) === parseInt(edgeIdTokens[1]);
+
+          return {
+            ...edge,
+            data: {
+              ...edge.data,
+              origin_disabled: isOrigin ? disabled : edge.data?.origin_disabled,
+              destination_disabled: !isOrigin
+                ? disabled
+                : edge.data?.destination_disabled,
+            },
+          };
+        })
+      );
     },
-    [setNodes, nodes]
+    [setNodes, nodes, setEdges]
   );
 
   const selectedEdge = useMemo(
@@ -601,7 +619,11 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
 
     if (operations.length === 0) {
       setSaving(false);
-      return { ok: true, summary: { inserted: 0, updated: 0, deleted: 0 } };
+      return {
+        ok: true,
+        createdAt: new Date(),
+        summary: { inserted: 0, updated: 0, deleted: 0 },
+      };
     }
 
     const settled = await Promise.allSettled(
@@ -609,6 +631,8 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
     );
 
     const report: OperationReport[] = [];
+
+    const insertedSupplyLineIds: Record<string, number> = {};
 
     for (let i = 0; i < settled.length; i++) {
       const operation = operations[i];
@@ -630,6 +654,15 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
       const value = result.value;
       const supabaseError = value.error ?? undefined;
 
+      if (
+        operation.name === "Creating Supply Line" &&
+        value.data &&
+        !supabaseError &&
+        value.data.id
+      ) {
+        insertedSupplyLineIds[operation.edgeId] = value.data.id;
+      }
+
       report.push({
         name: operation.name,
         status: "fulfilled",
@@ -642,6 +675,25 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
       } as OperationReport);
     }
 
+    if (Object.keys(insertedSupplyLineIds).length > 0) {
+      setEdges((prevEdges) =>
+        prevEdges.map((edge) => {
+          const newID = insertedSupplyLineIds[edge.id];
+
+          if (newID) {
+            return {
+              ...edge,
+              data: {
+                ...edge.data,
+                supply_line_id: newID,
+              },
+            };
+          }
+          return edge;
+        })
+      );
+    }
+
     if (!report.some((r) => r.status === "rejected" || r.supabaseError)) {
       setDeletedLinks([]);
       setInsertLinkIds([]);
@@ -651,6 +703,7 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
 
       return {
         ok: true,
+        createdAt: new Date(),
         summary: {
           updated: updatedNodes.length + updatedEdges.length,
           deleted: deletedIds.length,
@@ -709,7 +762,7 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
 
     setSaving(false);
 
-    return { ok: false, report };
+    return { ok: false, createdAt: new Date(), report };
   }, [
     edges,
     linkIdsToInsert,
@@ -717,6 +770,7 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
     planetsToUpdate,
     linksToUpdate,
     linksToDelete,
+    setEdges,
   ]);
 
   return {
@@ -733,13 +787,13 @@ export function usePlanetGraph(planets: GraphDBPlanet[], links: PlanetLink[]) {
     planetsToUpdate,
     linksToDelete,
     isSaving,
-    saveReport,
+    saveReports,
     // setters + handlers
     setRfInstance: onInit,
     setAddMode,
     setNodes,
     setEdges,
-    setReport,
+    setReports,
     onNodesChange,
     onEdgesChange,
     onConnect,

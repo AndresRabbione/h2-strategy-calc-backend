@@ -30,7 +30,6 @@ type CanvasProps = {
   onConnect: OnConnect;
   onSelectionChange: (selection: OnSelectionChangeParams) => void;
   setRfInstance: (instance: GraphInstance) => GraphInstance;
-  addMode: boolean;
   onNodeDragStop: OnNodeDrag<Node<PlanetNodeData>>;
   onNodeClick: NodeMouseHandler<Node<PlanetNodeData>>;
 };

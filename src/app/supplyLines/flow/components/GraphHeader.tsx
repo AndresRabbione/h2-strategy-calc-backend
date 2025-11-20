@@ -11,7 +11,7 @@ export default function GraphHeader({
   restorePriorState,
   hasEdits,
   finalizeEdits,
-  setReport,
+  setReports,
   isSaving,
 }: {
   addMode: boolean;
@@ -24,13 +24,13 @@ export default function GraphHeader({
   restorePriorState: () => void;
   hasEdits: boolean;
   finalizeEdits: () => Promise<FinalReport>;
-  setReport: Dispatch<SetStateAction<FinalReport | null>>;
+  setReports: Dispatch<SetStateAction<FinalReport[]>>;
   isSaving: boolean;
 }) {
   const saveChanges = async () => {
     const report = await finalizeEdits();
 
-    setReport(report);
+    setReports((prev) => [...prev, report]);
   };
 
   return (
@@ -57,7 +57,7 @@ export default function GraphHeader({
             className={`px-3 py-1 rounded-md text-sm font-medium border ${
               selectedElement && !isSaving
                 ? "border-red-600 bg-red-700/30 cursor-pointer hover:ring hover:ring-red-700/60 transition-all duration-300 ease-in-out"
-                : "border-red-900/20 bg-red-700/10"
+                : "border-red-900/20 bg-red-700/10 text-white/60"
             }`}
           >
             Delete
