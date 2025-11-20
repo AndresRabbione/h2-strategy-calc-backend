@@ -89,6 +89,14 @@ export async function getObjectiveText(
         });
       }
 
+      if (objective.factionId === 0 && !hasPlanet) {
+        source.push({
+          text: "on any planet",
+          color: mainTextColor,
+          joiner: " ",
+        });
+      }
+
       if (objective.sectorId && !hasPlanet) {
         source.push({ text: `in the`, color: mainTextColor, joiner: " " });
         source.push({
@@ -109,7 +117,7 @@ export async function getObjectiveText(
 
       return [
         {
-          text: !hasPlanet ? "Defend" : "Defend against",
+          text: hasPlanet ? "Defend" : "Defend against",
           color: mainTextColor,
           joiner: " ",
         },
