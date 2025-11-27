@@ -197,7 +197,7 @@ export enum ObjectiveTypes {
   OPERATIONS = 9,
   KILL = 3,
   COLLECT = 2,
-  LIBERATE_MORE = -1,
+  LIBERATE_MORE = 15,
   DEFEND = 12, //Not sure about this one
 }
 
