@@ -24,6 +24,7 @@ import { calcMinOffense } from "../parsing/winning";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "../../../database.types";
 import { playerImpactBaselineEstimate } from "@/lib/constants";
+import { ContextObject } from "./context";
 
 type Allocation = {
   planet: number;
@@ -108,26 +109,23 @@ export async function generateStrategies(
 
   console.time("Target gathering");
 
-  const targets = new Map<number, Set<number>>();
+  const context = new ContextObject(
+    totalPlayerCount,
+    allPlanets,
+    adjacency,
+    sectors ?? [],
+    estimatedPerPlayerImpact,
+    assignments ?? [],
+    currentStrategySteps,
+    latestSnapshots,
+    now
+  );
 
-  for (const assignment of assignments) {
+  for (const assignment of context.dbAssignments) {
     if (!assignment.is_decision) {
-      getAllTargetsForAssignment(
-        assignment,
-        allPlanets,
-        adjacency,
-        sectors ?? [],
-        targets
-      );
+      getAllTargetsForAssignment(assignment, context);
     } else {
-      getTargetsForDecisionAssignment(
-        assignment,
-        targets,
-        allPlanets,
-        planetRouter,
-        adjacency,
-        sectors ?? []
-      );
+      getTargetsForDecisionAssignment(assignment, context);
     }
 
     const strategyForAssignment = strategies?.find(
@@ -157,14 +155,7 @@ export async function generateStrategies(
 
   console.time("Final Target gathering");
 
-  const finalTargets = getFinalTargetList(
-    targets,
-    assignments,
-    allPlanets,
-    adjacency,
-    estimatedPerPlayerImpact,
-    totalPlayerCount
-  );
+  const finalTargets = getFinalTargetList(context);
 
   finalTargets.sort((a, b) => {
     if (a.objectiveIds.length !== b.objectiveIds.length) {

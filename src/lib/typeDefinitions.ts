@@ -300,7 +300,6 @@ export type DBObjectiveInsert = {
   type: number;
   totalAmount: number | null;
   itemId: number | null;
-  enemyProgress: number | null;
   difficulty: number | null;
   sectorId: number | null;
   objectiveIndex: number;
@@ -318,7 +317,6 @@ export type DBObjective = {
   type: number;
   totalAmount: number | null;
   itemId: number | null;
-  enemyProgress: number | null;
   difficulty: number | null;
   sectorId: number | null;
   objectiveIndex: number;

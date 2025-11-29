@@ -26,10 +26,6 @@ export abstract class Objective {
     return null;
   }
 
-  public getEnemyProgress(): number | null {
-    return null;
-  }
-
   public getItemId(): number | null {
     return null;
   }
@@ -330,28 +326,24 @@ export class OperationObjective extends Objective {
 
 export class LiberateMoreObjective extends Objective {
   faction: FactionIDs | null;
-  liberatedPlanetCount: number;
-  lostPlanetCount: number;
+  progress: number;
+  amount: number | null;
 
   constructor(
     completed: boolean,
     faction: FactionIDs | null = null,
-    liberatedCount: number,
-    lostCount: number,
+    progress: number,
+    amount: number | null = null,
     id: number
   ) {
     super(completed, ObjectiveTypes.LIBERATE_MORE, id);
     this.faction = faction;
-    this.liberatedPlanetCount = liberatedCount;
-    this.lostPlanetCount = lostCount;
-  }
-
-  public getEnemyProgress(): number | null {
-    return this.lostPlanetCount;
+    this.progress = progress;
+    this.amount = amount;
   }
 
   public getPlayerProgress(): number {
-    return this.liberatedPlanetCount;
+    return this.progress;
   }
 
   public getAmount(): number {

@@ -164,7 +164,7 @@ export class MOParser {
       }
     }
 
-    if (enemy && enemy !== 0) {
+    if (enemy) {
       const { data: DBEnemy } = await this.supabase
         .from("enemy")
         .select("*")
@@ -267,12 +267,12 @@ export class MOParser {
 
   private parsedLiberateMoreObj(objective: Task, progress: number): Objective {
     let faction: FactionIDs | null = null;
-    let planetsLost: number = 0;
+    let amount: number | null = null;
 
     for (let i = 0; i < objective.values.length; i++) {
       switch (objective.valueTypes[i]) {
         case ValueTypes.AMOUNT:
-          planetsLost = objective.values[i];
+          amount = objective.values[i];
           break;
         case ValueTypes.TARGET_FACTION:
           faction = objective.values[i];
@@ -280,7 +280,7 @@ export class MOParser {
       }
     }
 
-    return new LiberateMoreObjective(false, faction, progress, planetsLost, -1);
+    return new LiberateMoreObjective(false, faction, progress, amount, -1);
   }
 
   private parsedDefendAmountObj(objective: Task, progress: number): Objective {

@@ -115,7 +115,7 @@ export async function recordCurrentState(
     } else {
       await updateObjectives(
         supabase,
-        assignments!,
+        assignments,
         parsedAssingnment,
         planets,
         now
@@ -398,7 +398,6 @@ export async function parseAssignmentAndRecord(
         type: parsedObj.getObjectiveType(),
         totalAmount: parsedObj.getTotalAmount(),
         itemId: parsedObj.getItemId(),
-        enemyProgress: parsedObj.getEnemyProgress(),
         difficulty: parsedObj.getDifficulty(),
         sectorId: parsedObj.getTargetedSector(),
         objectiveIndex: i,

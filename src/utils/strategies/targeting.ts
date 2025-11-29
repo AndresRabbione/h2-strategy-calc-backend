@@ -13,6 +13,7 @@ import {
   isUnderAttackByFaction,
 } from "../parsing/factions";
 import { isGambitWinnable } from "../parsing/winning";
+import { ContextObject } from "./context";
 
 export type ValidatedTargeting = {
   targetId: number;
@@ -41,10 +42,7 @@ export type UnvalidatedTargeting = {
  */
 export function getAllTargetsForAssignment(
   assignment: FullParsedAssignment,
-  planets: Planet[],
-  adjacencyMap: Map<number, DBLinks[]>,
-  sectors: { id: number; sector: number }[],
-  foundTargets: Map<number, Set<number>>
+  context: ContextObject
 ): void {
   const planetRouter = new PlanetRouter();
 
@@ -59,31 +57,31 @@ export function getAllTargetsForAssignment(
     }
 
     if (objective.type === ObjectiveTypes.LIBERATE) {
-      const planet = planets[objective.planetId!];
+      const planet = context.allPlanets[objective.planetId!];
       if (planet.currentOwner === Factions.HUMANS) continue;
 
       const targets = getPlanetLiberationTargets(
         objective,
-        planets,
+        context.allPlanets,
         planetRouter,
-        adjacencyMap
+        context.adjacencyMap
       );
 
       for (const target of targets) {
-        addTarget(target.index, objective.id, foundTargets);
+        context.addTarget(target.index, objective.id);
       }
     }
 
     if (objective.type === ObjectiveTypes.HOLD) {
       const targets = getHoldOrDefendTargets(
         objective,
-        planets,
+        context.allPlanets,
         planetRouter,
-        adjacencyMap
+        context.adjacencyMap
       );
 
       for (const target of targets) {
-        addTarget(target.index, objective.id, foundTargets);
+        context.addTarget(target.index, objective.id);
       }
     }
 
@@ -91,24 +89,24 @@ export function getAllTargetsForAssignment(
       if (!objective.planetId) {
         const targets = getDefendAmountTargets(
           objective,
-          planets,
-          adjacencyMap,
-          sectors
+          context.allPlanets,
+          context.adjacencyMap,
+          context.sectors
         );
 
         for (const target of targets) {
-          addTarget(target.index, objective.id, foundTargets);
+          context.addTarget(target.index, objective.id);
         }
       } else {
         const targets = getHoldOrDefendTargets(
           objective,
-          planets,
+          context.allPlanets,
           planetRouter,
-          adjacencyMap
+          context.adjacencyMap
         );
 
         for (const target of targets) {
-          addTarget(target.index, objective.id, foundTargets);
+          context.addTarget(target.index, objective.id);
         }
       }
     }
@@ -118,8 +116,8 @@ export function getAllTargetsForAssignment(
       ObjectiveTypes.OPERATIONS === objective.type ||
       ObjectiveTypes.COLLECT === objective.type
     ) {
-      const mappedPlanets = planets.map((planet) => {
-        const sectorId = sectors.find(
+      const mappedPlanets = context.allPlanets.map((planet) => {
+        const sectorId = context.sectors.find(
           (sector) => sector.id === planet.index
         )?.sector;
 
@@ -138,13 +136,13 @@ export function getAllTargetsForAssignment(
       );
 
       for (const planet of filteredPlanets) {
-        addTarget(planet.id, objective.id, foundTargets);
+        context.addTarget(planet.id, objective.id);
       }
     }
 
     if (objective.type === ObjectiveTypes.LIBERATE_MORE) {
-      const mappedPlanets = planets.map((planet) => {
-        const sectorId = sectors.find(
+      const mappedPlanets = context.allPlanets.map((planet) => {
+        const sectorId = context.sectors.find(
           (sector) => sector.id === planet.index
         )?.sector;
 
@@ -159,11 +157,11 @@ export function getAllTargetsForAssignment(
         (planet) =>
           (!objective.factionId || planet.factionId === objective.factionId) &&
           (!objective.sectorId || planet.sectorId === objective.sectorId) &&
-          isPlanetAvailable(adjacencyMap, planet.id, planets)
+          isPlanetAvailable(context.adjacencyMap, planet.id, context.allPlanets)
       );
 
       for (const planet of filteredPlanets) {
-        addTarget(planet.id, objective.id, foundTargets);
+        context.addTarget(planet.id, objective.id);
       }
     }
   }
@@ -182,21 +180,6 @@ export function hasSpecificTargets(objective: DBObjective): boolean {
         objective.sectorId !== null &&
         objective.factionId !== null
       );
-  }
-}
-
-/**
- * Helper function for handling the logic of adding a target to the Map
- */
-function addTarget(
-  targetId: number,
-  objectiveId: number,
-  targetMap: Map<number, Set<number>>
-): void {
-  if (targetMap.has(targetId)) {
-    targetMap.get(targetId)?.add(objectiveId);
-  } else {
-    targetMap.set(targetId, new Set<number>().add(objectiveId));
   }
 }
 
@@ -320,20 +303,15 @@ export function getDefendAmountTargets(
 }
 
 export function getFinalTargetList(
-  targetList: Map<number, Set<number>>,
-  assignments: FullParsedAssignment[],
-  allPlanets: Planet[],
-  adjacencyMap: Map<number, DBLinks[]>,
-  estimatedPerPlayerImpact: number,
-  totalPlayerCount: number
+  context: ContextObject
 ): ValidatedTargeting[] {
   const finalList: ValidatedTargeting[] = [];
 
-  const mappedList: UnvalidatedTargeting[] = [...targetList.entries()].map(
-    ([targetId, objectiveIds]) => {
-      return { targetId: targetId, objectiveIds: [...objectiveIds.keys()] };
-    }
-  );
+  const mappedList: UnvalidatedTargeting[] = [
+    ...context.getTargets().entries(),
+  ].map(([targetId, objectiveIds]) => {
+    return { targetId: targetId, objectiveIds: [...objectiveIds.keys()] };
+  });
 
   mappedList.sort((a, b) => {
     if (a.objectiveIds.length !== b.objectiveIds.length) {
@@ -341,12 +319,12 @@ export function getFinalTargetList(
     }
 
     return (
-      allPlanets[a.targetId].regenPerSecond -
-      allPlanets[b.targetId].regenPerSecond
+      context.allPlanets[a.targetId].regenPerSecond -
+      context.allPlanets[b.targetId].regenPerSecond
     );
   });
 
-  for (const assignment of assignments) {
+  for (const assignment of context.dbAssignments) {
     for (const objective of assignment.objective) {
       const possibleTargets = mappedList.filter((target) =>
         target.objectiveIds.includes(objective.id)
@@ -362,10 +340,10 @@ export function getFinalTargetList(
           finalList.push(
             ...getFinalLiberationTargets(
               possibleTargets,
-              allPlanets,
+              context.allPlanets,
               objective.planetId!,
-              adjacencyMap,
-              getLowestRemainingTime(assignments, objectiveIds)
+              context.adjacencyMap,
+              getLowestRemainingTime(context.dbAssignments, objectiveIds)
             )
           );
           break;
@@ -373,12 +351,12 @@ export function getFinalTargetList(
           finalList.push(
             ...getFinalHoldOrDefendTargets(
               possibleTargets,
-              allPlanets,
+              context.allPlanets,
               objective.planetId!,
-              adjacencyMap,
-              getLowestRemainingTime(assignments, objectiveIds),
-              estimatedPerPlayerImpact,
-              totalPlayerCount
+              context.adjacencyMap,
+              getLowestRemainingTime(context.dbAssignments, objectiveIds),
+              context.estimatedPerPlayerImpact,
+              context.totalPlayerCount
             )
           );
           break;
@@ -387,12 +365,12 @@ export function getFinalTargetList(
             finalList.push(
               ...getFinalHoldOrDefendTargets(
                 possibleTargets,
-                allPlanets,
+                context.allPlanets,
                 objective.planetId!,
-                adjacencyMap,
-                getLowestRemainingTime(assignments, objectiveIds),
-                estimatedPerPlayerImpact,
-                totalPlayerCount
+                context.adjacencyMap,
+                getLowestRemainingTime(context.dbAssignments, objectiveIds),
+                context.estimatedPerPlayerImpact,
+                context.totalPlayerCount
               )
             );
           } else {
@@ -401,12 +379,12 @@ export function getFinalTargetList(
             finalList.push(
               ...getFinalDefendAmountTargets(
                 possibleTargets,
-                allPlanets,
+                context.allPlanets,
                 remainingAmount,
-                adjacencyMap,
-                getLowestRemainingTime(assignments, objectiveIds),
-                estimatedPerPlayerImpact,
-                totalPlayerCount
+                context.adjacencyMap,
+                getLowestRemainingTime(context.dbAssignments, objectiveIds),
+                context.estimatedPerPlayerImpact,
+                context.totalPlayerCount
               )
             );
           }
@@ -415,13 +393,12 @@ export function getFinalTargetList(
           finalList.push(
             ...getFinalLiberateMoreTargets(
               possibleTargets,
-              allPlanets,
+              context.allPlanets,
               objective.playerProgress,
-              objective.enemyProgress!,
-              adjacencyMap,
-              getLowestRemainingTime(assignments, objectiveIds),
-              estimatedPerPlayerImpact,
-              totalPlayerCount
+              context.adjacencyMap,
+              getLowestRemainingTime(context.dbAssignments, objectiveIds),
+              context.estimatedPerPlayerImpact,
+              context.totalPlayerCount
             )
           );
           break;
@@ -429,8 +406,8 @@ export function getFinalTargetList(
           finalList.push(
             getFinalDoAmountTarget(
               possibleTargets,
-              allPlanets,
-              getLowestRemainingTime(assignments, objectiveIds)
+              context.allPlanets,
+              getLowestRemainingTime(context.dbAssignments, objectiveIds)
             )
           );
           break;
@@ -438,8 +415,8 @@ export function getFinalTargetList(
           finalList.push(
             getFinalDoAmountTarget(
               possibleTargets,
-              allPlanets,
-              getLowestRemainingTime(assignments, objectiveIds)
+              context.allPlanets,
+              getLowestRemainingTime(context.dbAssignments, objectiveIds)
             )
           );
           break;
@@ -447,8 +424,8 @@ export function getFinalTargetList(
           finalList.push(
             getFinalDoAmountTarget(
               possibleTargets,
-              allPlanets,
-              getLowestRemainingTime(assignments, objectiveIds)
+              context.allPlanets,
+              getLowestRemainingTime(context.dbAssignments, objectiveIds)
             )
           );
           break;
@@ -786,14 +763,14 @@ export function getFinalLiberateMoreTargets(
   targets: UnvalidatedTargeting[],
   allPlanets: Planet[],
   playerProgress: number,
-  enemyProgress: number,
   adjacencyMap: Map<number, DBLinks[]>,
   assignmentEndTime: number,
   estimatedPlayerImpact: number,
   totalPlayerCount: number
 ): ValidatedTargeting[] {
-  const max = 2 - (playerProgress - enemyProgress);
-  if (max === 0) {
+  const maxTargetCount = 2 - playerProgress;
+
+  if (maxTargetCount === 0) {
     return [];
   }
 
@@ -826,7 +803,7 @@ export function getFinalLiberateMoreTargets(
 
     addedCount++;
 
-    if (addedCount >= max) return finalTargets;
+    if (addedCount >= maxTargetCount) return finalTargets;
   }
 
   const liberationTargets = targets.filter(
@@ -845,7 +822,7 @@ export function getFinalLiberateMoreTargets(
 
     addedCount++;
 
-    if (addedCount >= max) return finalTargets;
+    if (addedCount >= maxTargetCount) return finalTargets;
   }
 
   return finalTargets;
@@ -1001,16 +978,14 @@ function getLowestRemainingTime(
 
 export function getTargetsForDecisionAssignment(
   assignment: FullParsedAssignment,
-  foundTargets: Map<number, Set<number>>,
-  planets: Planet[],
-  planetRouter: PlanetRouter,
-  adjacencyMap: Map<number, DBLinks[]>,
-  sectors: { id: number; sector: number }[]
+  context: ContextObject
 ) {
   let lowestResistance = Infinity;
   let highestOccurrences = 0;
   let bestTargets: Planet[] = [];
   let bestObjectiveId: number | null = null;
+
+  const planetRouter = new PlanetRouter();
 
   for (const objective of assignment.objective) {
     if (
@@ -1023,18 +998,19 @@ export function getTargetsForDecisionAssignment(
     }
 
     if (objective.type === ObjectiveTypes.LIBERATE) {
-      const planet = planets[objective.planetId!];
+      const planet = context.allPlanets[objective.planetId!];
       if (planet.currentOwner === Factions.HUMANS) continue;
 
       const targets = getPlanetLiberationTargets(
         objective,
-        planets,
+        context.allPlanets,
         planetRouter,
-        adjacencyMap
+        context.adjacencyMap
       );
 
       const cumulativeResistance = planetRouter.calcRouteResistance(targets);
-      const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 1;
+      const objectiveCount =
+        context.getTargetById(objective.planetId!)?.size ?? 1;
 
       if (objectiveCount > highestOccurrences) {
         bestTargets = targets;
@@ -1057,13 +1033,14 @@ export function getTargetsForDecisionAssignment(
     if (objective.type === ObjectiveTypes.HOLD) {
       const targets = getHoldOrDefendTargets(
         objective,
-        planets,
+        context.allPlanets,
         planetRouter,
-        adjacencyMap
+        context.adjacencyMap
       );
 
       const cumulativeResistance = planetRouter.calcRouteResistance(targets);
-      const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 1;
+      const objectiveCount =
+        context.getTargetById(objective.planetId!)?.size ?? 1;
 
       if (objectiveCount > highestOccurrences) {
         bestTargets = targets;
@@ -1087,13 +1064,14 @@ export function getTargetsForDecisionAssignment(
       if (!objective.planetId) {
         const targets = getDefendAmountTargets(
           objective,
-          planets,
-          adjacencyMap,
-          sectors
+          context.allPlanets,
+          context.adjacencyMap,
+          context.sectors
         );
 
         const cumulativeResistance = planetRouter.calcRouteResistance(targets);
-        const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 1;
+        const objectiveCount =
+          context.getTargetById(objective.planetId!)?.size ?? 1;
 
         if (objectiveCount > highestOccurrences) {
           bestTargets = targets;
@@ -1114,13 +1092,14 @@ export function getTargetsForDecisionAssignment(
       } else {
         const targets = getHoldOrDefendTargets(
           objective,
-          planets,
+          context.allPlanets,
           planetRouter,
-          adjacencyMap
+          context.adjacencyMap
         );
 
         const cumulativeResistance = planetRouter.calcRouteResistance(targets);
-        const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 1;
+        const objectiveCount =
+          context.getTargetById(objective.planetId!)?.size ?? 1;
 
         if (objectiveCount > highestOccurrences) {
           bestTargets = targets;
@@ -1146,8 +1125,8 @@ export function getTargetsForDecisionAssignment(
       ObjectiveTypes.OPERATIONS === objective.type ||
       ObjectiveTypes.COLLECT === objective.type
     ) {
-      const mappedPlanets = planets.map((planet) => {
-        const sectorId = sectors.find(
+      const mappedPlanets = context.allPlanets.map((planet) => {
+        const sectorId = context.sectors.find(
           (sector) => sector.id === planet.index
         )?.sector;
 
@@ -1166,11 +1145,12 @@ export function getTargetsForDecisionAssignment(
               planet.factionId === objective.factionId) &&
             (!objective.sectorId || planet.sectorId === objective.sectorId)
         )
-        .map((planet) => planets[planet.id]);
+        .map((planet) => context.allPlanets[planet.id]);
 
       const cumulativeResistance =
         planetRouter.calcRouteResistance(filteredPlanets);
-      const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 1;
+      const objectiveCount =
+        context.getTargetById(objective.planetId!)?.size ?? 1;
 
       if (objectiveCount > highestOccurrences) {
         bestTargets = filteredPlanets;
@@ -1191,8 +1171,8 @@ export function getTargetsForDecisionAssignment(
     }
 
     if (objective.type === ObjectiveTypes.LIBERATE_MORE) {
-      const mappedPlanets = planets.map((planet) => {
-        const sectorId = sectors.find(
+      const mappedPlanets = context.allPlanets.map((planet) => {
+        const sectorId = context.sectors.find(
           (sector) => sector.id === planet.index
         )?.sector;
 
@@ -1209,13 +1189,18 @@ export function getTargetsForDecisionAssignment(
             (!objective.factionId ||
               planet.factionId === objective.factionId) &&
             (!objective.sectorId || planet.sectorId === objective.sectorId) &&
-            isPlanetAvailable(adjacencyMap, planet.id, planets)
+            isPlanetAvailable(
+              context.adjacencyMap,
+              planet.id,
+              context.allPlanets
+            )
         )
-        .map((planet) => planets[planet.id]);
+        .map((planet) => context.allPlanets[planet.id]);
 
       const cumulativeResistance =
         planetRouter.calcRouteResistance(filteredPlanets);
-      const objectiveCount = foundTargets.get(objective.planetId!)?.size ?? 1;
+      const objectiveCount =
+        context.getTargetById(objective.planetId!)?.size ?? 1;
 
       if (objectiveCount > highestOccurrences) {
         bestTargets = filteredPlanets;
@@ -1237,6 +1222,6 @@ export function getTargetsForDecisionAssignment(
   }
 
   for (const planet of bestTargets) {
-    addTarget(planet.index, bestObjectiveId!, foundTargets);
+    context.addTarget(planet.index, bestObjectiveId!);
   }
 }
