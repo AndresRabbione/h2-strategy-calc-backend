@@ -3,6 +3,7 @@ import { createClient } from "../supabase/server";
 import { fetchAllPlanets } from "./planets";
 import { DBLinks } from "../strategies/routing";
 import { helldiversAPIHeaders } from "@/lib/constants";
+import { createPlanetMap } from "../parsing/mapping";
 
 const api = process.env.NEXT_PUBLIC_HELLDIVERS_API_URL;
 
@@ -56,6 +57,8 @@ export async function fetchAllAttacks(retries: number = 3): Promise<Attack[]> {
 
       const allPlanets = await fetchAllPlanets();
 
+      const planetMap = createPlanetMap(allPlanets);
+
       for (const defense of responseJson) {
         const filteredLinks = links.filter(
           (link) =>
@@ -68,7 +71,7 @@ export async function fetchAllAttacks(retries: number = 3): Promise<Attack[]> {
             defense.index === planet.planetId
               ? planet.linkedPlanetId!
               : planet.planetId!;
-          const fullPlanetInfo = allPlanets[otherPlanetId];
+          const fullPlanetInfo = planetMap.get(otherPlanetId)!;
 
           if (
             fullPlanetInfo.currentOwner !== Factions.HUMANS &&
@@ -78,7 +81,7 @@ export async function fetchAllAttacks(retries: number = 3): Promise<Attack[]> {
             const attack: Attack = { source: fullPlanetInfo, targets: [] };
 
             for (const targetId of fullPlanetInfo.attacking) {
-              const target = allPlanets[targetId];
+              const target = planetMap.get(targetId)!;
               if (target.event) attack.targets.push(target);
             }
 
@@ -98,6 +101,7 @@ export async function fetchAllAttacks(retries: number = 3): Promise<Attack[]> {
 
 export async function findGambitForPlanet(planetId: number): Promise<Attack> {
   const allPlanets = await fetchAllPlanets(planetId);
+  const planetMap = createPlanetMap(allPlanets);
   try {
     const supabase = await createClient();
     const { data: linksFromPlanet } = await supabase
@@ -123,7 +127,7 @@ export async function findGambitForPlanet(planetId: number): Promise<Attack> {
         planetId === linkedPlanet.planetId
           ? linkedPlanet.linkedPlanetId!
           : linkedPlanet.planetId!;
-      const fullPlanetInfo = allPlanets[otherPlanetId];
+      const fullPlanetInfo = planetMap.get(otherPlanetId)!;
 
       if (
         fullPlanetInfo.currentOwner !== Factions.HUMANS &&
@@ -132,7 +136,7 @@ export async function findGambitForPlanet(planetId: number): Promise<Attack> {
         const attack: Attack = { source: fullPlanetInfo, targets: [] };
 
         for (const targetId of fullPlanetInfo.attacking) {
-          const target = allPlanets[targetId];
+          const target = planetMap.get(targetId)!;
           if (target.event) attack.targets.push(target);
         }
 
@@ -140,17 +144,23 @@ export async function findGambitForPlanet(planetId: number): Promise<Attack> {
       }
     }
 
-    return { source: allPlanets[planetId], targets: [] };
+    return {
+      source: planetMap.get(planetId)!,
+      targets: [],
+    };
   } catch (e) {
     console.error(e);
-    return { source: allPlanets[planetId], targets: [] };
+    return {
+      source: planetMap.get(planetId)!,
+      targets: [],
+    };
   }
 }
 
 export function getAttackersForPlanet(
   planet: Planet,
   supplyLines: Map<number, DBLinks[]>,
-  allPlanets: Planet[]
+  planetMap: Map<number, Planet>
 ): Planet[] {
   const attackers: Planet[] = [];
 
@@ -163,7 +173,7 @@ export function getAttackersForPlanet(
         ? linkedPlanet.linkedPlanetId!
         : linkedPlanet.planetId!;
 
-    const otherPlanet = allPlanets[otherPlanetId];
+    const otherPlanet = planetMap.get(otherPlanetId)!;
     if (
       otherPlanet.currentOwner !== Factions.HUMANS &&
       otherPlanet.attacking.includes(planet.index)

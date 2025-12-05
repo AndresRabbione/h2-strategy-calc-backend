@@ -40,9 +40,9 @@ export default async function MajorOrderDashboard() {
       <h2 className="text-2xl font-semibold">Assignments</h2>
       <Link
         href={"/orders/current"}
-        className="grid grid-cols-2 grid-rows-2 divide-y-1 divide-white justify-center items-center w-full"
+        className="grid grid-cols-2 grid-rows-2 divide-y divide-white justify-center items-center w-full"
       >
-        <div className="flex flex-row items-center justify-between col-span-2 divide-x-1 divide-white p-1">
+        <div className="flex flex-row items-center justify-between col-span-2 divide-x divide-white p-1">
           <div className="flex flex-col items-center justify-center w-1/2">
             <span className="text-center">Active Assingnments</span>
             <span className="font-semibold text-xl">

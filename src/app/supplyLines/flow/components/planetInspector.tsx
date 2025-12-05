@@ -26,6 +26,7 @@ export default function PlanetInspector({
         <span>
           <strong>Name:</strong> {node.data.name}
         </span>
+
         <div className="flex items-center gap-2">
           <label htmlFor="planetDisabled" className="text-sm">
             <strong>Disabled</strong>

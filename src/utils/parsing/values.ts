@@ -35,9 +35,6 @@ export async function parseValueType(
       return enemy ?? [];
       break;
     case ValueTypes.ITEM:
-      //FIXME: Pray for no duplicate IDs or we're totally fucked
-      // value type 6 seems to indiacte if an item or strat is needed
-      // but not which one, so this hack is necessary
       const { data: item } = await supabase
         .from("item")
         .select("*")
@@ -193,8 +190,7 @@ export async function getNumberOfUnparsedValues(
     (id) => !foundValueTypeIds.has(id)
   ).length;
 
-  // For value parsing, batch by valueType/table if possible (advanced optimization)
-  // For now, keep as sequential but could be batched further
+  // For value parsing, batch by valueType/table if possible
   const seenPairs = new Set<string>();
   for (const { valueType, value, auxValue } of valueTypePairs) {
     const key = `${valueType}-${value}-${auxValue}`;

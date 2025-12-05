@@ -379,6 +379,7 @@ export type DBPlanet = {
   latest_enemy: number | null;
   latest_regen: number;
   current_event: number | null;
+  true_index: number;
 };
 
 export type StationStatusInsert = {

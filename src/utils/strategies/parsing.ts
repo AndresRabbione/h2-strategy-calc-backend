@@ -47,13 +47,13 @@ export class MOParser {
   private parsePlanetObj(
     objective: Task,
     progress: number,
-    allPlanets: Planet[]
+    allPlanets: Map<number, Planet>
   ): Objective {
     let target: Planet | null;
 
     for (let i = 0; i < objective.values.length; i++) {
       if (objective.valueTypes[i] === ValueTypes.TARGET_ID) {
-        target = allPlanets[objective.values[i]];
+        target = allPlanets.get(objective.values[i])!;
       }
     }
 
@@ -67,7 +67,7 @@ export class MOParser {
   private parseOperationObj(
     objective: Task,
     progress: number,
-    allPlanets: Planet[]
+    allPlanets: Map<number, Planet>
   ): Objective {
     let complete: boolean = false;
     let difficulty: number | null = null;
@@ -85,7 +85,7 @@ export class MOParser {
           difficulty = objective.values[i];
           break;
         case ValueTypes.TARGET_ID:
-          planet = allPlanets[objective.values[i]];
+          planet = allPlanets.get(objective.values[i])!;
           break;
         case ValueTypes.TARGET_FACTION:
           faction = objective.values[i];
@@ -109,7 +109,7 @@ export class MOParser {
   private async parseKillObj(
     objective: Task,
     progress: number,
-    allPlanets: Planet[]
+    allPlanets: Map<number, Planet>
   ): Promise<Objective> {
     let complete: boolean = false;
     let faction: FactionIDs | null = null;
@@ -139,7 +139,7 @@ export class MOParser {
           for (const type of objective.valueTypes) {
             if (type === ValueTypes.TARGET_TYPE) auxValue = type;
           }
-          planet = auxValue === 1 ? allPlanets[objective.values[i]] : null;
+          planet = auxValue === 1 ? allPlanets.get(objective.values[i])! : null;
           sector = auxValue === 2 ? objective.values[i] : null;
           break;
       }
@@ -199,7 +199,7 @@ export class MOParser {
   private async parseCollectionObj(
     objective: Task,
     progress: number,
-    allPlanets: Planet[]
+    allPlanets: Map<number, Planet>
   ): Promise<Objective> {
     let complete: boolean = false;
     let faction: FactionIDs | null = null;
@@ -230,7 +230,7 @@ export class MOParser {
             if (objective.valueTypes[currType] === ValueTypes.TARGET_TYPE)
               auxValue = objective.values[currType];
           }
-          planet = auxValue === 1 ? allPlanets[objective.values[i]] : null;
+          planet = auxValue === 1 ? allPlanets.get(objective.values[i])! : null;
           sector = auxValue === 2 ? objective.values[i] : null;
           break;
       }
@@ -306,7 +306,7 @@ export class MOParser {
   public async getParsedObjective(
     objective: Task,
     progress: number,
-    allPlanets: Planet[]
+    allPlanets: Map<number, Planet>
   ): Promise<Objective | null> {
     switch (objective.type) {
       case ObjectiveTypes.HOLD:

@@ -75,7 +75,7 @@ export class PlanetRouter {
   private getAllRoutesDFS(
     startingPlanet: Planet,
     adjacency: Map<number, DBLinks[]>,
-    allPlanets: Planet[],
+    allPlanets: Map<number, Planet>,
     visited: Set<number> = new Set(),
     currentRoute: Planet[] = [],
     maxDepth: number = 8
@@ -111,7 +111,7 @@ export class PlanetRouter {
         startingPlanet.index === link.planetId
           ? link.linkedPlanetId
           : link.planetId;
-      const nextPlanet = allPlanets[nextId!];
+      const nextPlanet = allPlanets.get(nextId!)!;
       if (!nextPlanet) continue;
 
       const routes = this.getAllRoutesDFS(
@@ -136,7 +136,7 @@ export class PlanetRouter {
   //TODO: Needs to find other target collisions which is considerably more difficult
   public findShortestRoute(
     planet: Planet,
-    allPlanets: Planet[],
+    allPlanets: Map<number, Planet>,
     adjacency: Map<number, DBLinks[]>
   ): Planet[] {
     if (planet.currentOwner === Factions.HUMANS) {
@@ -149,7 +149,7 @@ export class PlanetRouter {
     for (const link of links) {
       const neighborId =
         link.planetId === planet.index ? link.linkedPlanetId : link.planetId;
-      const neighbor = allPlanets[neighborId!];
+      const neighbor = allPlanets.get(neighborId!);
       if (neighbor && neighbor.currentOwner === Factions.HUMANS) {
         return [planet, neighbor];
       }

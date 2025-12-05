@@ -5,10 +5,10 @@ import {
   StrategyStepFull,
 } from "@/lib/typeDefinitions";
 import { DBLinks } from "./routing";
+import { createPlanetMap } from "../parsing/mapping";
 
 export class ContextObject {
   public readonly totalPlayerCount: number;
-  public readonly allPlanets: Planet[];
   public readonly adjacencyMap: Map<number, DBLinks[]>;
   public readonly sectors: { id: number; sector: number }[];
   public readonly estimatedPerPlayerImpact: number;
@@ -16,6 +16,8 @@ export class ContextObject {
   public readonly dbAssignments: FullParsedAssignment[];
   public readonly currentSteps: StrategyStepFull[];
   public readonly latestSnapshots: PlanetSnapshotFull[];
+  public readonly planetMap: Map<number, Planet>;
+  public readonly allPlanets: Planet[];
 
   private targetMap: Map<number, Set<number>>;
 
@@ -31,7 +33,6 @@ export class ContextObject {
     now: string
   ) {
     this.totalPlayerCount = totalPlayerCount;
-    this.allPlanets = allPlanets;
     this.adjacencyMap = adjacencyMap;
     this.sectors = sectors;
     this.targetMap = new Map<number, Set<number>>();
@@ -40,6 +41,8 @@ export class ContextObject {
     this.now = now;
     this.currentSteps = currentSteps;
     this.latestSnapshots = latestSnapshots;
+    this.planetMap = createPlanetMap(allPlanets);
+    this.allPlanets = allPlanets;
   }
 
   public addTarget(targetId: number, objectiveId: number): void {

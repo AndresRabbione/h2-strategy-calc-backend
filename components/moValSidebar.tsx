@@ -194,7 +194,7 @@ export default function MOValSidebar({
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-0.5">
               <span className="pl-2">ID</span>
-              <span className="border-1 p-2 rounded-md">{id}</span>
+              <span className="border p-2 rounded-md">{id}</span>
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="pl-2">Name</span>
@@ -203,7 +203,7 @@ export default function MOValSidebar({
                 required
                 name="edit-content"
                 id="edit-content"
-                className="border-1 p-2 text-start rounded-md items-start justify-start placeholder-gray-400 bg-gray-800"
+                className="border p-2 text-start rounded-md items-start justify-start placeholder-gray-400 bg-gray-800"
                 placeholder="Name..."
                 onChange={(e) => {
                   setName(e.target.value);
@@ -218,7 +218,7 @@ export default function MOValSidebar({
                   Minimum Difficulty
                 </label>
                 <select
-                  className="border-1 p-2 text-start rounded-md items-start justify-start placeholder-gray-400 bg-gray-800"
+                  className="border p-2 text-start rounded-md items-start justify-start placeholder-gray-400 bg-gray-800"
                   name="minDifficultySelect"
                   id="minDifficultySelect"
                   value={selectedDifficulties.minDifficulty}
@@ -244,7 +244,7 @@ export default function MOValSidebar({
                   Maximum Difficulty
                 </label>
                 <select
-                  className="border-1 p-2 text-start rounded-md items-start justify-start placeholder-gray-400 bg-gray-800"
+                  className="border p-2 text-start rounded-md items-start justify-start placeholder-gray-400 bg-gray-800"
                   name="maxDifficultySelect"
                   id="maxDifficultySelect"
                   value={selectedDifficulties.maxDifficulty}

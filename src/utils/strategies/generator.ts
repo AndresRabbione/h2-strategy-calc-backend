@@ -163,8 +163,8 @@ export async function generateStrategies(
     }
 
     return (
-      allPlanets[a.targetId].regenPerSecond -
-      allPlanets[b.targetId].regenPerSecond
+      context.planetMap.get(a.targetId)!.regenPerSecond -
+      context.planetMap.get(b.targetId)!.regenPerSecond
     );
   });
 
@@ -173,13 +173,9 @@ export async function generateStrategies(
   console.time("Step generation");
 
   const newSteps = generateStepsFromTargets(
+    context,
     finalTargets,
-    allPlanets,
-    totalPlayerCount,
-    estimatedPerPlayerImpact,
-    assignments,
     rawStrategies,
-    now,
     currentStrategySteps
   );
 
@@ -212,10 +208,7 @@ export async function generateStrategies(
 
   const regionSplits = await getSplitsForTargets(
     insertedSteps?.concat(updatedSteps) ?? updatedSteps,
-    allPlanets,
-    now,
-    estimatedPerPlayerImpact,
-    totalPlayerCount,
+    context,
     supabase
   );
 
@@ -258,13 +251,9 @@ export function canGenerateStrategies(
 }
 
 export function generateStepsFromTargets(
+  context: ContextObject,
   finalTargets: ValidatedTargeting[],
-  allPlanets: Planet[],
-  totalPlayerCount: number,
-  estimatedPerPlayerImpact: number,
-  assignments: FullParsedAssignment[],
   rawStrategies: { id: number; assignmentId: number }[],
-  now: string,
   currentStrategySteps: StrategyStepFull[]
 ): {
   toInsert: StrategyStepInsert[];
@@ -286,7 +275,7 @@ export function generateStepsFromTargets(
 
     seenTargets.add(target.targetId);
 
-    const planetTarget = allPlanets[target.targetId];
+    const planetTarget = context.planetMap.get(target.targetId)!;
 
     const mainProgress = calcPlanetProgressPercentage(
       planetTarget.health,
@@ -295,7 +284,7 @@ export function generateStepsFromTargets(
     );
 
     const strategyId = getStrategyIdForObjectives(
-      assignments,
+      context.dbAssignments,
       target.objectiveIds,
       rawStrategies
     );
@@ -305,7 +294,7 @@ export function generateStepsFromTargets(
         planetId: target.targetId,
         playerPercentage: 0,
         strategyId: strategyId,
-        created_at: now,
+        created_at: context.now,
         progress: mainProgress,
         limit_date: new Date(Date.now() + target.timeRemaining).toISOString(),
       };
@@ -319,9 +308,9 @@ export function generateStepsFromTargets(
       firstIndependantId = target.targetId;
 
     let runningTotal = calcMinOffense(
-      estimatedPerPlayerImpact,
-      totalPlayerCount,
-      allPlanets[target.targetId],
+      context.estimatedPerPlayerImpact,
+      context.totalPlayerCount,
+      context.planetMap.get(target.targetId)!,
       target.timeRemaining
     );
 
@@ -334,7 +323,7 @@ export function generateStepsFromTargets(
         planetId: target.targetId,
         playerPercentage: runningTotal,
         strategyId: strategyId,
-        created_at: now,
+        created_at: context.now,
         progress: mainProgress,
         limit_date: new Date(Date.now() + target.timeRemaining).toISOString(),
       },
@@ -345,7 +334,7 @@ export function generateStepsFromTargets(
 
       seenTargets.add(dependant.targetId);
 
-      const dependantPlanet = allPlanets[dependant.targetId];
+      const dependantPlanet = context.planetMap.get(dependant.targetId)!;
 
       const dependantProgress = calcPlanetProgressPercentage(
         dependantPlanet.health,
@@ -354,9 +343,9 @@ export function generateStepsFromTargets(
       );
 
       const dependantOffense = calcMinOffense(
-        estimatedPerPlayerImpact,
-        totalPlayerCount,
-        allPlanets[dependant.targetId],
+        context.estimatedPerPlayerImpact,
+        context.totalPlayerCount,
+        context.planetMap.get(dependant.targetId)!,
         dependant.timeRemaining
       );
       runningTotal += dependantOffense;
@@ -365,7 +354,7 @@ export function generateStepsFromTargets(
         planetId: dependant.targetId,
         playerPercentage: dependantOffense,
         strategyId,
-        created_at: now,
+        created_at: context.now,
         progress: dependantProgress,
         limit_date: new Date(
           Date.now() + target.timeRemaining * 60 * 60 * 1000
@@ -398,12 +387,12 @@ export function generateStepsFromTargets(
 
     if (longTermTarget) {
       const strategyId = getStrategyIdForObjectives(
-        assignments,
+        context.dbAssignments,
         longTermTarget.objectiveIds,
         rawStrategies
       );
 
-      const planet = allPlanets[longTermTarget.targetId];
+      const planet = context.planetMap.get(longTermTarget.targetId)!;
       const progress = calcPlanetProgressPercentage(
         planet.health,
         planet.maxHealth,
@@ -414,7 +403,7 @@ export function generateStepsFromTargets(
         planetId: longTermTarget.targetId,
         playerPercentage: playerbasePercentage,
         strategyId,
-        created_at: now,
+        created_at: context.now,
         progress,
         limit_date: new Date(
           Date.now() + longTermTarget.timeRemaining / 3600000
@@ -430,12 +419,12 @@ export function generateStepsFromTargets(
         const bestTarget = finalTargets[0];
 
         const strategyId = getStrategyIdForObjectives(
-          assignments,
+          context.dbAssignments,
           bestTarget.objectiveIds,
           rawStrategies
         );
 
-        const planet = allPlanets[bestTarget.targetId];
+        const planet = context.planetMap.get(bestTarget.targetId)!;
         const progress = calcPlanetProgressPercentage(
           planet.health,
           planet.maxHealth,
@@ -446,7 +435,7 @@ export function generateStepsFromTargets(
           planetId: bestTarget.targetId,
           playerPercentage: playerbasePercentage,
           strategyId,
-          created_at: now,
+          created_at: context.now,
           progress,
           limit_date: new Date(
             Date.now() + bestTarget.timeRemaining / 3600000
@@ -459,10 +448,10 @@ export function generateStepsFromTargets(
   const cleanupSteps = genererateStepCleanup(
     interimSteps,
     currentStrategySteps,
-    now,
-    allPlanets,
+    context.now,
+    context.planetMap,
     true,
-    now //Dummy Value
+    context.now //Dummy Value
   );
 
   for (const step of interimSteps) {
@@ -493,7 +482,7 @@ export function genererateStepCleanup(
   newSteps: StrategyStepInsert[],
   currentSteps: StrategyStepFull[],
   now: string,
-  allPlanets: Planet[],
+  allPlanets: Map<number, Planet>,
   isActive: boolean,
   endDate: string
 ): { toInsert: StrategyStepInsert[]; toUpdate: StrategyStepFull[] } {
@@ -511,7 +500,7 @@ export function genererateStepCleanup(
 
     seenPlanets.add(step.planetId);
 
-    const planet = allPlanets[step.planetId];
+    const planet = allPlanets.get(step.planetId)!;
 
     const progress = calcPlanetProgressPercentage(
       planet.health,
@@ -674,10 +663,7 @@ export function optimizeRegionAllocation(
 
 export async function getSplitsForTargets(
   newSteps: StrategyStepFull[],
-  allPlanets: Planet[],
-  now: string,
-  estimatedPerPlayerImpact: number,
-  totalPlayerCount: number,
+  context: ContextObject,
   supabase: SupabaseClient<Database>
 ): Promise<RegionSplitInsert[]> {
   const regionSplits: RegionSplitInsert[] = [];
@@ -699,24 +685,26 @@ export async function getSplitsForTargets(
     const latestTimestamp =
       previousSplits[0]?.created_at ?? new Date().toISOString();
 
-    const planet = allPlanets[step.planetId];
+    const planet = context.planetMap.get(step.planetId)!;
     const timeHorizon =
       (new Date(step.limit_date).getTime() - Date.now()) / 3600000;
 
     const assingedPlayerCount =
-      totalPlayerCount * (step.playerPercentage / 100);
+      context.totalPlayerCount * (step.playerPercentage / 100);
 
     const allocation = optimizeRegionAllocation(
-      allPlanets[step.planetId],
+      context.planetMap.get(step.planetId)!,
       timeHorizon,
-      estimatedPerPlayerImpact,
-      totalPlayerCount,
+      context.estimatedPerPlayerImpact,
+      context.totalPlayerCount,
       step
     );
 
     if (allocation.planet > 0) {
       const percentage =
-        allocation.planet / estimatedPerPlayerImpact / assingedPlayerCount;
+        allocation.planet /
+        context.estimatedPerPlayerImpact /
+        assingedPlayerCount;
 
       const priorSplit = previousSplits.find(
         (split) =>
@@ -729,7 +717,7 @@ export async function getSplitsForTargets(
         planet_id: planet.index,
         step_id: step.id,
         region_id: null,
-        created_at: now,
+        created_at: context.now,
         percentage: percentage * 100,
       };
 
@@ -751,7 +739,7 @@ export async function getSplitsForTargets(
 
       const percentage =
         currentRegionAllocation /
-        estimatedPerPlayerImpact /
+        context.estimatedPerPlayerImpact /
         assingedPlayerCount;
 
       const priorSplit = previousSplits.find(
@@ -765,7 +753,7 @@ export async function getSplitsForTargets(
         planet_id: planet.index,
         step_id: step.id,
         region_id: currentRegion.hash,
-        created_at: now,
+        created_at: context.now,
         percentage: percentage * 100,
       };
 

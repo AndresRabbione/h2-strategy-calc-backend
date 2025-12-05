@@ -39,6 +39,7 @@ import { warStartTime } from "@/lib/constants";
 import { getObjectiveTextMarkup } from "../objectives/textFormation";
 import { stationStrategicDescriptionToPlainText } from "../parsing/spaceStations";
 import { getAllSpaceStations } from "../helldiversAPI/spaceStation";
+import { createDBPlanetMap, createPlanetMap } from "../parsing/mapping";
 
 export async function recordCurrentState(
   supabase: SupabaseClient<Database>
@@ -78,10 +79,14 @@ export async function recordCurrentState(
     !assignments ||
     planets.length === 0 ||
     !parsedAssingnments ||
-    !eventIds
+    !eventIds ||
+    !dbPlanets
   ) {
     return false;
   }
+
+  const planetMap = createPlanetMap(planets);
+  const dbPlanetMap = createDBPlanetMap(dbPlanets);
 
   const flattenedEventIds = eventIds.map((event) => event.id);
 
@@ -105,9 +110,9 @@ export async function recordCurrentState(
       await parseAssignmentAndRecord(
         supabase,
         assignment,
-        planets,
+        planetMap,
         now,
-        dbPlanets ?? []
+        dbPlanetMap
       );
 
       hasNewAssignments = true;
@@ -117,7 +122,7 @@ export async function recordCurrentState(
         supabase,
         assignments,
         parsedAssingnment,
-        planets,
+        planetMap,
         now
       );
       seenAssignments.add(parsedAssingnment.id);
@@ -137,7 +142,7 @@ export async function recordCurrentState(
       inactiveAssignmentIds.push(parsedAssignment.id);
       parsedAssignment.is_active = false;
     }
-    await updateSteps(supabase, parsedAssignment, planets, now);
+    await updateSteps(supabase, parsedAssignment, planetMap, now);
   }
 
   const [unrecordedDispatches, { error: assignmentError }] = await Promise.all([
@@ -181,7 +186,7 @@ export async function recordCurrentState(
     _objComplete,
     { error: impactError },
   ] = await Promise.all([
-    takePlanetSnapshots(supabase, planets, adjacency),
+    takePlanetSnapshots(supabase, planetMap, adjacency),
     supabase.from("player_count_record").insert({
       player_count: totalPlayerCount,
       created_at: now,
@@ -235,7 +240,7 @@ export async function updateObjectives(
   supabase: SupabaseClient<Database>,
   assignments: Assignment[],
   fullParsedAssignment: FullParsedAssignment,
-  allPlanets: Planet[],
+  allPlanets: Map<number, Planet>,
   now: string
 ) {
   const currentAssignment = assignments.filter(
@@ -250,7 +255,7 @@ export async function updateObjectives(
         let progress = currentAssignment[0].progress[currentObjectiveIndex];
 
         if (objective.planetId) {
-          const planet = allPlanets[objective.planetId];
+          const planet = allPlanets.get(objective.planetId)!;
           if (!planet.event && planet.currentOwner === Factions.HUMANS) {
             progress = 100;
           } else {
@@ -314,7 +319,7 @@ export async function updateObjectives(
 export async function updateSteps(
   supabase: SupabaseClient<Database>,
   assignment: FullParsedAssignment,
-  allPlanets: Planet[],
+  allPlanets: Map<number, Planet>,
   now: string
 ) {
   const { data: strategy } = await supabase
@@ -333,7 +338,7 @@ export async function updateSteps(
   const newestSteps = getNewestStepsForPlanets(strategy.strategyStep);
 
   for (const step of newestSteps) {
-    const planet = allPlanets[step.planetId];
+    const planet = allPlanets.get(step.planetId)!;
     const progress = calcPlanetProgressPercentage(
       planet.health,
       planet.maxHealth,
@@ -369,9 +374,9 @@ export async function updateSteps(
 export async function parseAssignmentAndRecord(
   supabase: SupabaseClient<Database>,
   assignment: Assignment,
-  allPlanets: Planet[],
+  allPlanets: Map<number, Planet>,
   now: string,
-  allDBPlanets: DBPlanet[]
+  dbPlanetMap: Map<number, DBPlanet>
 ) {
   const tasks = assignment.setting.tasks;
   const progress = assignment.progress;
@@ -437,7 +442,7 @@ export async function parseAssignmentAndRecord(
     dbObjective.map(async (objective) => {
       objective.parsed_text = await getObjectiveTextMarkup(
         objective,
-        allDBPlanets
+        dbPlanetMap
       );
       const { data, error } = await supabase
         .from("objective")
@@ -461,13 +466,13 @@ export async function parseAssignmentAndRecord(
 
 export async function takePlanetSnapshots(
   supabase: SupabaseClient<Database>,
-  allPlanets: Planet[],
+  planetMap: Map<number, Planet>,
   adjacencyMap: Map<number, DBLinks[]>
 ): Promise<void> {
   const rowsToInsert: PlanetSnapshotInsert[] = [];
   const now = new Date().toISOString();
 
-  for (const planet of allPlanets) {
+  for (const [id, planet] of planetMap) {
     const links = adjacencyMap.get(planet.index);
 
     if (!links) continue;
@@ -475,7 +480,7 @@ export async function takePlanetSnapshots(
     const friendlyLinks = links.filter((link) => {
       const otherPlanetId =
         link.planetId === planet.index ? link.linkedPlanetId! : link.planetId!;
-      return allPlanets[otherPlanetId].currentOwner === Factions.HUMANS;
+      return planetMap.get(otherPlanetId)!.currentOwner === Factions.HUMANS;
     });
 
     const isDisabled = links.some(

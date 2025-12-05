@@ -11,15 +11,15 @@ import { parseEnemyId } from "../parsing/enemy";
 
 export async function getObjectiveText(
   objective: DBObjectiveInsert,
-  allPlanets: DBPlanet[]
+  planetMap: Map<number, DBPlanet>
 ): Promise<{ text: string; color: string; joiner: string }[]> {
   const mainTextColor = "#ffffff";
 
-  if (allPlanets.length === 0)
+  if (planetMap.size === 0)
     return [{ text: "Unknown Objective", color: mainTextColor, joiner: "" }];
 
   const source: { text: string; color: string; joiner: string }[] = [];
-  const planet = objective.planetId ? allPlanets[objective.planetId] : null;
+  const planet = objective.planetId ? planetMap.get(objective.planetId)! : null;
   const hasPlanet = objective.planetId !== null;
   const highlightTextColor = "#ffe711";
 
@@ -277,7 +277,7 @@ export async function getObjectiveText(
 
 export async function getObjectiveTextMarkup(
   objective: DBObjectiveInsert,
-  allPlanets: DBPlanet[]
+  allPlanets: Map<number, DBPlanet>
 ): Promise<string> {
   const parsedText = await getObjectiveText(objective, allPlanets);
 

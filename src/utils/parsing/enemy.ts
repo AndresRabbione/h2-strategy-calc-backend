@@ -8,12 +8,12 @@ export async function parseEnemyId(
 ): Promise<{ id: number; name: string; faction: number }> {
   if (factionId && enemyId === EnemyIds.ANY) {
     return {
-      id: -1,
+      id: 0,
       name: getFactionNameFromId(factionId, true),
       faction: factionId,
     };
   } else if (!factionId && enemyId === EnemyIds.ANY) {
-    return { id: -1, name: "enemies", faction: 0 };
+    return { id: 0, name: "enemies", faction: 0 };
   } else {
     const supabase = await createClient();
     const { data } = await supabase

@@ -98,7 +98,6 @@ export function calcMinOffense(
 
 export function calcMinRegionOffense(
   estimatedPerPlayerImpact: number,
-  totalPlayerCount: number,
   health: number,
   maxHealth: number,
   regenPerSecond: number,
